@@ -9,21 +9,28 @@
 
   <br>
 
+  [![Google Play](https://img.shields.io/badge/Google_Play-Live_Now-34A853?style=for-the-badge&logo=google-play&logoColor=white&labelColor=0F5132)](https://play.google.com/store/apps/details?id=com.nextplayer.pro)
   [![Latest Release](https://img.shields.io/github/v/release/mindcreative134-creator/nextplayer?style=for-the-badge&logo=github&color=4F46E5&labelColor=1E1B4B)](https://github.com/mindcreative134-creator/nextplayer/releases)
   [![Platform](https://img.shields.io/badge/Platform-Android_8.0+-3DDC84?style=for-the-badge&logo=android&logoColor=white&labelColor=064E3B)](https://github.com/mindcreative134-creator/nextplayer)
   [![Languages](https://img.shields.io/badge/Languages-Kotlin_%7C_C%2B%2B-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white&labelColor=2E1065)](https://github.com/mindcreative134-creator/nextplayer)
   [![UI Framework](https://img.shields.io/badge/UI-Jetpack_Compose_M3-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white&labelColor=172554)](https://github.com/mindcreative134-creator/nextplayer)
   [![License](https://img.shields.io/badge/License-AGPL_v3-EF4444?style=for-the-badge&logo=open-source-initiative&logoColor=white&labelColor=450A0A)](https://github.com/mindcreative134-creator/nextplayer/blob/main/LICENSE)
 
-  <br>
+  <br><br>
+
+  <a href="https://play.google.com/store/apps/details?id=com.nextplayer.pro">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="72" alt="Get it on Google Play" />
+  </a>
+
+  <br><br>
 
   <p align="center">
-    <a href="#-overview"><b>Overview</b></a> •
+    <a href="#-download--install"><b>Download & Install</b></a> •
     <a href="#-lineage--ancestral-tree"><b>Lineage & Heritage</b></a> •
     <a href="#-comparative-analysis-the-lineage-face-off"><b>Comparison Matrix</b></a> •
     <a href="#-visual-showcase"><b>Screenshots</b></a> •
     <a href="#-key-features"><b>Features</b></a> •
-    <a href="#-tech-stack--architecture"><b>Architecture</b></a> •
+    <a href="#-device-compatibility--android-tv"><b>Device Compatibility</b></a> •
     <a href="#-building-from-source"><b>Build Guide</b></a>
   </p>
 
@@ -301,6 +308,52 @@ Next Player revolutionizes playback flexibility with its unified dual-engine pip
 | **Local Cache & DB** | Room Database with SQLite Flow observers |
 | **Scripting Engine** | QuickJS-NG for JavaScript and embedded Lua 5.2 |
 | **Network Protocols** | `smbj` (SMB2/3), `jsch` (SFTP), `sardine-android` (WebDAV), OkHttp 4 |
+
+---
+
+## 📥 Download & Install
+
+Next Player is officially published on the **Google Play Store** for automatic updates and verified installation, as well as on **GitHub Releases** for direct APK sideloading:
+
+<div align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.nextplayer.pro">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="74" alt="Get it on Google Play" />
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/mindcreative134-creator/nextplayer/releases">
+    <img src="https://img.shields.io/badge/GitHub_Releases-Download_APK-24292F?style=for-the-badge&logo=github&logoColor=white" height="48" alt="Download APK from GitHub" />
+  </a>
+</div>
+
+<br>
+
+| Distribution Channel | Package Name | Updates | Best For |
+|---|---|---|---|
+| 🟢 **Google Play Store** | `com.nextplayer.pro` | Automatic background updates | Most users wanting verified, seamless, stable installation |
+| 🐙 **GitHub Releases** | `com.nextplayer.pro` | In-app update check / Direct APK | Devices without Google Play Services, testers & power-users |
+
+---
+
+## 📱 Device Compatibility & Android TV
+
+Next Player is engineered to deliver stellar performance across different Android hardware form factors:
+
+### 📱 Phones & Foldables (Tier 1 Support)
+- **Fluid Touch Gestures**: Fine-tuned double-tap zones, 200% volume swipe boost, brightness slider, and pinch-to-zoom (0.5x to 3x).
+- **Edge-to-Edge & Foldable Adaptive**: Respects camera cutouts and dynamically adapts layouts during split-screen and device fold/unfold transitions.
+
+### 📟 Tablets & Desktops
+- **Responsive Multi-Pane**: Dual-pane file manager, multi-column media grid layouts, and expanded video metadata view.
+
+### 📺 Android TV, Google TV & Smart Screens
+**Can you use Next Player on Android TV?** Here is the honest, comprehensive breakdown:
+
+| Capability | Status | How it Works |
+|---|:---:|---|
+| **📡 Google Cast to TV** | 🏆 **Supported (Built-in)** | Tap the Cast button in the player to stream local videos or network URLs directly to your Chromecast / Android TV / Google TV. |
+| **🎮 TV Remote (D-Pad) Navigation** | ✅ **Supported** | If sideloaded onto an Android TV box, the player handles TV remote keys (`DPAD_LEFT`/`RIGHT` to seek, `DPAD_CENTER`/`ENTER` to play/pause). |
+| **🔌 Sideload Installation** | ✅ **Supported** | `android.software.leanback` and `touchscreen` features are marked non-required in manifest, allowing installation on Android TV OS. |
+| **🏠 10-Foot Leanback Home Launcher** | ⏳ *Planned Roadmap* | The current library UI is designed for touch/pointer. For Android TV, we recommend using Google Cast or a mouse/air-remote for library navigation. |
 
 ---
 
