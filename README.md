@@ -19,9 +19,9 @@
 
   <p align="center">
     <a href="#-overview"><b>Overview</b></a> •
-    <a href="#-lineage--acknowledgment"><b>Lineage & Credits</b></a> •
+    <a href="#-lineage--ancestral-tree"><b>Lineage & Heritage</b></a> •
+    <a href="#-comparative-analysis-the-lineage-face-off"><b>Comparison Matrix</b></a> •
     <a href="#-visual-showcase"><b>Screenshots</b></a> •
-    <a href="#-feature-matrix"><b>Comparison</b></a> •
     <a href="#-key-features"><b>Features</b></a> •
     <a href="#-tech-stack--architecture"><b>Architecture</b></a> •
     <a href="#-building-from-source"><b>Build Guide</b></a>
@@ -31,9 +31,101 @@
 
 ---
 
+## 🧬 Lineage & Ancestral Tree
+
+**Next Player** is the culmination of years of community-driven innovation in Android media playback. Rather than reinventing the wheel, Next Player stands proudly upon the foundations laid by visionary open-source developers:
+
+```
+                          ┌────────────────────────┐
+                          │   mpv (Desktop Core)   │
+                          └───────────┬────────────┘
+                                      │
+                                      ▼
+                          ┌────────────────────────┐
+                          │      mpv-android       │  ← Pure minimal libmpv port
+                          └───────────┬────────────┘
+                                      │
+                                      ▼
+                          ┌────────────────────────┐
+                          │         mpvEx          │  ← Power-user property overrides
+                          │  (by marlboro-advance) │     & MediaInfo integration
+                          └───────────┬────────────┘
+                                      │
+                                      ▼
+                          ┌────────────────────────┐
+                          │         mpvRx          │  ← Jetpack Compose M3 redesign,
+                          │   (by Riteshp2001)     │     Anime4K tuning & dual subtitles
+                          └───────────┬────────────┘
+                                      │
+                                      ▼
+                          ┌────────────────────────┐
+                          │      MPV-infinity      │  ← Revolutionary Dual Engine (MPV + Media3),
+                          │    (by ZHINFINITY)     │     Dolby Vision routing, Jellyfin & yt-dlp
+                          └───────────┬────────────┘
+                                      │
+                                      ▼
+                          ┌────────────────────────┐
+                          │      Next Player       │  ← Unified Entertainment Hub:
+                          │ (mindcreative134-crea) │     Shorts Feed, Audiophile Music Suite,
+                          └────────────────────────┘     Frosted Glass UI & Refined Pipeline
+```
+
 > [!NOTE]
-> ### 🌟 Heritage & Evolution
-> **Next Player** is an advanced open-source evolution building upon and incorporating core architectural strengths from **[MPV-infinity](https://github.com/ZHINFINITY/Mpv-infinity)** (by ZHINFINITY) and the **[mpvRx](https://github.com/Riteshp2001/mpvRx)** ecosystem. We have combined MPV-infinity's powerful libmpv + Media3 dual-engine foundation with our brand new **Shorts/Reels vertical feed**, **refined Material 3 Expressive frosted glass UI**, **enhanced gesture navigation**, **modernized theme engine**, and **seamless playback optimizations**.
+> ### 🌟 Lineage Acknowledgments
+> - **[mpv-android](https://github.com/mpv-android/mpv-android)**: The bedrock of Android MPV playback, demonstrating that a full desktop Unix media engine can run on mobile devices.
+> - **[mpvEx / mpvExtended](https://github.com/marlboro-advance/mpvEx)** by **marlboro-advance**: Pioneered deep Android-specific MPV customizations, advanced property inspector sheets, and low-level media introspection.
+> - **[mpvRx](https://github.com/Riteshp2001/mpvRx)** by **Ritesh Pandit**: Elevated the user experience with an exceptional Material 3 Jetpack Compose interface, specialized anime playback enhancements, and intuitive touch controls.
+> - **[MPV-infinity](https://github.com/ZHINFINITY/Mpv-infinity)** by **ZHINFINITY**: Created the historic architectural breakthrough of **Dual Playback Engines (libmpv + AndroidX Media3)** with smart auto-routing for difficult Dolby Vision Profile 5/8 streams, native Jellyfin/Seerr integration, and the native Python yt-dlp bridge.
+
+---
+
+## ⚔️ Comparative Analysis: The Lineage Face-Off
+
+Every player in this lineage was engineered with specific philosophies, trade-offs, and target audiences. Here is an honest, comprehensive comparison showing **where each player excels** and where they make deliberate design compromises:
+
+| Feature / Aspect | 📱 mpv-android | ⚙️ mpvEx | 🌸 mpvRx | ♾️ MPV-infinity | ⚡ Next Player |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Target Philosophy** | Purist minimalist desktop port | Low-level property tweaking | Modern anime & otaku experience | Dual-engine Dolby Vision & streaming | Unified all-in-one media powerhouse |
+| **Engine Architecture** | Single (`libmpv`) | Single (`libmpv`) | Single (`libmpv`) | **Dual Engine** (MPV + Media3) | **Dual Engine** (MPV + Media3) |
+| **Dolby Vision (Profile 5, 7, 8)** | ⚠️ Tonemapped (magenta/green tint on some devices) | ⚠️ Tonemapped (requires manual shader tuning) | ⚠️ Shader tonemapped (best for anime HDR) | 🏆 **Native Hardware Route** (ExoPlayer bypass) | 🏆 **Native Hardware Route** (ExoPlayer bypass) |
+| **Anime4K Real-Time Shaders** | ⚠️ Manual config | ⚠️ Extended toggles | 🏆 **Pre-tuned Otaku Presets** | ✅ Bundled + Thermal Guard | ✅ Bundled + Thermal Guard |
+| **UI Framework & Style** | Legacy Android Views (Minimal OSD) | Legacy Android Views + Extra Sheets | Modern Jetpack Compose (Material 3) | Material 3 Expressive with Deep Menus | 🏆 **Refined Frosted Glass Pill UI** |
+| **Shorts / Reels Vertical Feed** | ❌ None | ❌ None | ❌ None | ❌ None | 🏆 **Dedicated Snap Feed** (Exclusive) |
+| **Dedicated Music Suite** | ❌ Plays audio as video | ❌ Audio in file list | ❌ Basic file audio | ⚠️ MediaStore list with basic controls | 🏆 **Full Audiophile Player** (Albums, Art, Visualizer) |
+| **Jellyfin & Media Servers** | ❌ Manual URL stream | ❌ Manual URL stream | ❌ Basic stream URL | 🏆 **Native Client + Seerr Requests** | 🏆 **Native Client + Seerr Requests** |
+| **yt-dlp Video Streaming** | ❌ None | ❌ None | ❌ None | 🏆 **Native Python Bridge** (SDK 29+ bypass) | 🏆 **Native Python Bridge** (SDK 29+ bypass) |
+| **Local Network (SMB/FTP/WebDAV)**| ⚠️ Protocol URLs only | ⚠️ Protocol URLs only | ❌ URL only | 🏆 **Native Protocol Clients** | 🏆 **Native Protocol Clients** |
+| **Dual Subtitles (Simultaneous)**| ❌ Complex Lua script | ⚠️ Partial script | 🏆 **Native Primary + Secondary** | 🏆 **Native Primary + Secondary** | 🏆 **Native Primary + Secondary** |
+| **AI Subtitle & Translation** | ❌ None | ❌ None | ❌ None | 🏆 **OpenAI, Claude, Groq & Whisper** | 🏆 **OpenAI, Claude, Groq & Whisper** |
+| **APK Size & Footprint** | 🏆 **Ultra-Light (~20 MB)** | 🏆 **Lightweight (~30 MB)** | ⚖️ Moderate (~48 MB) | 📦 Heavy (~85 MB, multi-engine) | 📦 Heavy (~90 MB, multi-engine + hub) |
+| **RAM & Idle Resource Usage** | 🏆 **Lowest RAM (< 60 MB)** | 🏆 **Very Low RAM** | ⚖️ Moderate RAM | ⚖️ Moderate to High RAM | ⚖️ Moderate to High RAM |
+| **Configuration Learning Curve** | High (`mpv.conf` required) | High (technical flags) | Low to Moderate (clean UI) | Moderate (deep feature set) | Low to Moderate (intuitive defaults) |
+
+---
+
+### 🎯 Which Player Should You Choose?
+
+- **Choose [mpv-android](https://github.com/mpv-android/mpv-android)** if:
+  - You want an ultra-lightweight app under 25 MB with bare minimum RAM consumption.
+  - You prefer configuring your player exclusively through text-based `mpv.conf` and `input.conf` files.
+  - You prioritize raw simplicity and upstream code tracking above all else.
+
+- **Choose [mpvEx](https://github.com/marlboro-advance/mpvEx)** if:
+  - You are a developer or power-user who loves inspecting low-level MPV runtime properties and container metadata on the fly.
+  - You want classic Android view stability with extra control toggles without Compose overhead.
+
+- **Choose [mpvRx](https://github.com/Riteshp2001/mpvRx)** if:
+  - Your primary passion is watching anime with stylized ASS/SSA subtitles.
+  - You want a lightweight, elegant Material 3 interface optimized specifically for video animation without server streaming clutter.
+
+- **Choose [MPV-infinity](https://github.com/ZHINFINITY/Mpv-infinity)** if:
+  - You stream 4K Dolby Vision remuxes from a home Jellyfin or SMB server and need the groundbreaking Dual-Engine hardware routing.
+  - You want a cinema-centric setup with native yt-dlp web video extraction and Syncplay room watch parties.
+
+- **Choose Next Player** if:
+  - You want an **all-in-one entertainment hub** that unifies movies, anime, vertical short-form reels, and your entire offline music library into a single app.
+  - You love modern, tactile **Material 3 Expressive frosted glass design** with spring physics, 25+ curated color palettes, and AMOLED pure black.
+  - You want the dual-engine power of MPV-infinity combined with a fluid, multi-media experience.
 
 ---
 
@@ -95,25 +187,6 @@
   <img src="docs/showcase/player-glass.jpg" width="96%" alt="Frosted Glass Surface" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" /><br>
   <sub><i>Next Player's signature Material 3 Expressive frosted glass interface with dynamic controls</i></sub>
 </div>
-
----
-
-## ⚔️ Feature Matrix
-
-| Capability | Next Player ⚡ | Standard MPV-Android | Generic Android Players |
-|---|:---:|:---:|:---:|
-| **Dual Engine (MPV + Media3)** | ✅ **Yes (Auto-Routing)** | ❌ MPV Only | ❌ ExoPlayer Only |
-| **Dolby Vision (Profiles 5, 7, 8)** | ✅ **Native + Fallback** | ⚠️ Partial | ⚠️ Limited Profile 5 |
-| **Anime4K Real-Time Shaders** | ✅ **7 Preset Tiers + Thermal Guard** | ⚠️ Manual Config | ❌ Not Supported |
-| **Shorts & Reels Snap Feed** | ✅ **Built-in Vertical Feed** | ❌ None | ❌ None |
-| **Audiophile Offline Music Suite**| ✅ **Full Player with Album Art** | ❌ Basic Video Audio | ❌ Separate App |
-| **Jellyfin & Seerr Streaming** | ✅ **Native Integrated Client** | ❌ None | ❌ None |
-| **yt-dlp Native Streaming** | ✅ **Built-in Python Bridge** | ❌ None | ❌ None |
-| **Network Streaming (SMB/FTP/WebDAV)**| ✅ **Native Clients** | ⚠️ Protocols Only | ❌ Rare / Paid |
-| **Dual Subtitles (Simultaneous)** | ✅ **Primary + Secondary** | ⚠️ Complex Lua | ❌ Single Only |
-| **AI Subtitle Translation & Format**| ✅ **OpenAI / Claude / Groq** | ❌ None | ❌ None |
-| **200% Smart Volume Boost** | ✅ **Gesture-Driven** | ⚠️ Config Tweak | ❌ 100% Hardware Cap |
-| **Material 3 Expressive Design** | ✅ **Frosted Glass + 25+ Themes** | ❌ Classical UI | ❌ Ad-Heavy Clutter |
 
 ---
 
@@ -269,8 +342,9 @@ cd nextplayer
 **Next Player** stands on the shoulders of giants in the open-source multimedia landscape. We express our deepest gratitude and recognition to the following projects and maintainers:
 
 - **[MPV-infinity](https://github.com/ZHINFINITY/Mpv-infinity)** by **ZHINFINITY**: A foundational pillar whose libmpv and Media3 dual-engine architecture, engine routing, and player groundwork played an integral role in shaping Next Player.
-- **[mpvRx](https://github.com/Riteshp2001/mpvRx)** by **Ritesh Pandit**: Inspiring core player concepts and lineage design.
-- **[mpv](https://mpv.io/)** & **[mpv-android](https://github.com/mpv-android/mpv-android)**: The gold standard open-source media player engine.
+- **[mpvRx](https://github.com/Riteshp2001/mpvRx)** by **Ritesh Pandit**: Inspiring core player concepts, modern UI foundations, and lineage design.
+- **[mpvEx / mpvExtended](https://github.com/marlboro-advance/mpvEx)** by **marlboro-advance**: Pioneer of Android MPV power-user extensions, property toggles, and MediaInfo integration.
+- **[mpv-android](https://github.com/mpv-android/mpv-android)** & **[mpv](https://mpv.io/)**: The gold standard open-source media player engine that started the entire Android MPV movement.
 - **[AndroidX Media3](https://developer.android.com/jetpack/androidx/releases/media3)**: Google's media framework powering hardware-accelerated playback.
 - **[Jellyfin](https://github.com/jellyfin/jellyfin-androidx-media)**: For the exceptional Media3 FFmpeg audio decoder.
 - **[Anime4K](https://github.com/bloc97/Anime4K)** by **bloc97**: State-of-the-art anime scaling GLSL shaders.
