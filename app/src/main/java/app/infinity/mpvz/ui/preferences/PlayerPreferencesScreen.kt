@@ -929,7 +929,18 @@ object PlayerPreferencesScreen : Screen {
                   )
                 },
                 valueRange = 0f..9f,
-                summary = { Text("$pngCompression", color = MaterialTheme.colorScheme.outline) },
+                summary = {
+                  Text(
+                    if (pngCompression == 0) {
+                      "$pngCompression (None / Lossless uncompressed)"
+                    } else if (pngCompression == 9) {
+                      "$pngCompression (Maximum compression)"
+                    } else {
+                      "$pngCompression (Fast to balanced)"
+                    },
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
                 onSliderValueChange = { preferences.screenshotPngCompression.set(it.roundToInt().coerceIn(0, 9)) },
                 sliderValue = pngCompression.toFloat(),
               )

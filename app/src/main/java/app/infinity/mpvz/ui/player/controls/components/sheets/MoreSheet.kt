@@ -76,6 +76,7 @@ fun MoreSheet(
   onEnterFiltersPanel: () -> Unit,
   onEnterLuaScriptsPanel: () -> Unit,
   onEnterEqualizerSheet: (() -> Unit)? = null,
+  onEnterScreenshotSettings: (() -> Unit)? = null,
   anime4KUiState: Anime4KUiState,
   onAnime4KModeSelected: (Anime4KManager.Mode) -> Unit,
   filtersEnabled: Boolean = true,
@@ -211,6 +212,22 @@ fun MoreSheet(
                       LocalContentColor.current
                     },
                 )
+              }
+            }
+          }
+          if (onEnterScreenshotSettings != null) {
+            TextButton(onClick = onEnterScreenshotSettings) {
+              Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+              ) {
+                Icon(
+                  imageVector = Icons.RoundedFilled.Aperture,
+                  contentDescription = stringResource(id = R.string.pref_screenshots_section),
+                )
+                if (showActionLabels) {
+                  Text(text = stringResource(id = R.string.pref_screenshots_section))
+                }
               }
             }
           }

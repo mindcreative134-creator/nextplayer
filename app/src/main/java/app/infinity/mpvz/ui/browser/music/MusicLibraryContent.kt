@@ -713,111 +713,117 @@ fun MusicLibraryContent(
         onRefresh = { musicViewModel.refreshLibrary(context) },
         modifier = Modifier.fillMaxSize()
       ) {
-        if (isLoading && songs.isEmpty()) {
-          Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-          ) {
-            CircularProgressIndicator()
-          }
-        } else {
-          HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 1,
-          ) { page ->
-            val activeTab = visibleTabs.getOrNull(page) ?: MusicTab.SONGS
-            when (activeTab) {
-              MusicTab.SONGS -> SongsTabContent(
-                songs = songs,
-                viewMode = viewMode,
-                recentlyPlayedFilePath = recentlyPlayedFilePath,
-                isPlaybackActive = isPlaybackActive,
-                coverArtSizeDp = coverArtSizeDp,
-                onSongClick = { song ->
-                  if (songSelectionManager.isInSelectionMode) {
-                    songSelectionManager.toggle(song)
-                  } else {
-                    musicViewModel.playSong(context, song, songs)
-                  }
-                },
-                onSongLongClick = { song ->
-                  songSelectionManager.toggle(song)
-                },
-                selectionManager = songSelectionManager,
-                listState = songsListState,
-                gridState = songsGridState,
-              )
+        Column(modifier = Modifier.fillMaxSize()) {
+          app.infinity.mpvz.ads.HomeBannerAdCard()
 
-              MusicTab.ALBUMS -> AlbumsTabContent(
-                albums = albums,
-                viewMode = viewMode,
-                coverArtSizeDp = coverArtSizeDp,
-                onAlbumClick = { album ->
-                  if (albumSelectionManager.isInSelectionMode) {
-                    albumSelectionManager.toggle(album)
-                  } else {
-                    musicViewModel.selectAlbum(album)
-                  }
-                },
-                onAlbumLongClick = { album ->
-                  albumSelectionManager.toggle(album)
-                },
-                selectionManager = albumSelectionManager,
-                listState = albumsListState,
-                gridState = albumsGridState,
-              )
+          Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (isLoading && songs.isEmpty()) {
+              Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+              ) {
+                CircularProgressIndicator()
+              }
+            } else {
+              HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                beyondViewportPageCount = 1,
+              ) { page ->
+                val activeTab = visibleTabs.getOrNull(page) ?: MusicTab.SONGS
+                when (activeTab) {
+                  MusicTab.SONGS -> SongsTabContent(
+                    songs = songs,
+                    viewMode = viewMode,
+                    recentlyPlayedFilePath = recentlyPlayedFilePath,
+                    isPlaybackActive = isPlaybackActive,
+                    coverArtSizeDp = coverArtSizeDp,
+                    onSongClick = { song ->
+                      if (songSelectionManager.isInSelectionMode) {
+                        songSelectionManager.toggle(song)
+                      } else {
+                        musicViewModel.playSong(context, song, songs)
+                      }
+                    },
+                    onSongLongClick = { song ->
+                      songSelectionManager.toggle(song)
+                    },
+                    selectionManager = songSelectionManager,
+                    listState = songsListState,
+                    gridState = songsGridState,
+                  )
 
-              MusicTab.ARTISTS -> ArtistsTabContent(
-                artists = artists,
-                viewMode = viewMode,
-                coverArtSizeDp = coverArtSizeDp,
-                onArtistClick = { artist ->
-                  if (artistSelectionManager.isInSelectionMode) {
-                    artistSelectionManager.toggle(artist)
-                  } else {
-                    musicViewModel.selectArtist(artist)
-                  }
-                },
-                onArtistLongClick = { artist ->
-                  artistSelectionManager.toggle(artist)
-                },
-                selectionManager = artistSelectionManager,
-                listState = artistsListState,
-                gridState = artistsGridState,
-              )
+                  MusicTab.ALBUMS -> AlbumsTabContent(
+                    albums = albums,
+                    viewMode = viewMode,
+                    coverArtSizeDp = coverArtSizeDp,
+                    onAlbumClick = { album ->
+                      if (albumSelectionManager.isInSelectionMode) {
+                        albumSelectionManager.toggle(album)
+                      } else {
+                        musicViewModel.selectAlbum(album)
+                      }
+                    },
+                    onAlbumLongClick = { album ->
+                      albumSelectionManager.toggle(album)
+                    },
+                    selectionManager = albumSelectionManager,
+                    listState = albumsListState,
+                    gridState = albumsGridState,
+                  )
 
-              MusicTab.PLAYLISTS -> PlaylistsTabContent(
-                playlists = playlists,
-                songs = songs,
-                viewMode = viewMode,
-                coverArtSizeDp = coverArtSizeDp.dp,
-                onPlaylistClick = { playlist ->
-                  if (playlistSelectionManager.isInSelectionMode) {
-                    playlistSelectionManager.toggle(playlist)
-                  } else {
-                    selectedPlaylistForDetail = playlist
-                  }
-                },
-                onPlaylistLongClick = { playlist ->
-                  playlistSelectionManager.toggle(playlist)
-                },
-                selectionManager = playlistSelectionManager,
-                listState = playlistsListState,
-                gridState = playlistsGridState,
-              )
+                  MusicTab.ARTISTS -> ArtistsTabContent(
+                    artists = artists,
+                    viewMode = viewMode,
+                    coverArtSizeDp = coverArtSizeDp,
+                    onArtistClick = { artist ->
+                      if (artistSelectionManager.isInSelectionMode) {
+                        artistSelectionManager.toggle(artist)
+                      } else {
+                        musicViewModel.selectArtist(artist)
+                      }
+                    },
+                    onArtistLongClick = { artist ->
+                      artistSelectionManager.toggle(artist)
+                    },
+                    selectionManager = artistSelectionManager,
+                    listState = artistsListState,
+                    gridState = artistsGridState,
+                  )
 
-              // Reuse the exact same folder-browsing screen Home uses for videos,
-              // just scoped to audio (audioOnly = true).
-              MusicTab.FOLDERS -> FolderListScreen.MediaStoreFolderListContent(
-                audioOnly = true,
-                embedded = true,
-                searchQuery = searchQuery,
-              )
-            }
-          }
-        }
-      }
+                  MusicTab.PLAYLISTS -> PlaylistsTabContent(
+                    playlists = playlists,
+                    songs = songs,
+                    viewMode = viewMode,
+                    coverArtSizeDp = coverArtSizeDp.dp,
+                    onPlaylistClick = { playlist ->
+                      if (playlistSelectionManager.isInSelectionMode) {
+                        playlistSelectionManager.toggle(playlist)
+                      } else {
+                        selectedPlaylistForDetail = playlist
+                      }
+                    },
+                    onPlaylistLongClick = { playlist ->
+                      playlistSelectionManager.toggle(playlist)
+                    },
+                    selectionManager = playlistSelectionManager,
+                    listState = playlistsListState,
+                    gridState = playlistsGridState,
+                  )
+
+                  // Reuse the exact same folder-browsing screen Home uses for videos,
+                  // just scoped to audio (audioOnly = true).
+                  MusicTab.FOLDERS -> FolderListScreen.MediaStoreFolderListContent(
+                    audioOnly = true,
+                    embedded = true,
+                    searchQuery = searchQuery,
+                  )
+                }
+              } // end HorizontalPager
+            } // end else
+          } // end Box weight(1f)
+        } // end Column
+      } // end PullRefreshBox
 
         // Album Detail Sheet
         selectedAlbum?.let { album ->

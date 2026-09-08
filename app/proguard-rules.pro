@@ -82,3 +82,12 @@
     java.lang.Object writeReplace();
     java.lang.Object readResolve();
 }
+
+# Google Mobile Ads (AdMob) - keep the reflection-based internal APIs
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.ads.** { *; }
+-keep class com.google.android.gms.common.internal.safeparcel.SafeParcelable { *; }
+-keep class com.google.android.gms.ads.identifier.** { *; }
+-dontwarn com.google.android.gms.ads.**
+-dontwarn com.google.android.gms.ads.identifier.**
+

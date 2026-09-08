@@ -47,9 +47,11 @@ androidxBiometric = "1.4.0-alpha07"
 leakcanary = "2.14"
 libtorrent4j = "2.1.0-39"
 libarchiveAndroid = "1.1.6"
+playServicesAds = "23.6.0"
 ktlint = "14.2.0"
 
 [libraries]
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

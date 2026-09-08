@@ -95,6 +95,8 @@ Desktop.ini
 *.key
 *.pem
 *.p12
+releasekey/
+.vscode/
 
 # Gradle signing configs
 keystore.properties

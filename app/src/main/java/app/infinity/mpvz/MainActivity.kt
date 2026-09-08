@@ -246,6 +246,10 @@ class MainActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    app.infinity.mpvz.ads.AdmobManager.loadAppOpenAd(this)
+    app.infinity.mpvz.ads.AdmobManager.loadInterstitialAd(this)
+    app.infinity.mpvz.ads.AdmobManager.showAppOpenAdIfAvailable(this)
+
     pipHelper = MPVPipHelper(
       activity = this,
       isAudioPlayer = { isCurrentMediaAudioOnly() },

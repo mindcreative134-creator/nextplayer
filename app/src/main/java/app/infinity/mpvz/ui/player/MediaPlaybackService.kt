@@ -93,7 +93,7 @@ class MediaPlaybackService :
     // Final state saves must outlive serviceScope, which is cancelled during teardown.
     private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private const val NOTIFICATION_ID = 1
-    private const val NOTIFICATION_CHANNEL_ID = "Mpv∞_playback_channel"
+    private const val NOTIFICATION_CHANNEL_ID = "NextPlayer_playback_channel"
     private const val PLAYBACK_STATE_SAVE_INTERVAL_MS = 5000L
     private const val PROGRESS_NOTIFICATION_UPDATE_INTERVAL_MS = 2000L
     private const val MEDIA_NOTIFICATION_UPDATE_INTERVAL_MS = 1000L

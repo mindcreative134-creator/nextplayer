@@ -19,11 +19,11 @@ import androidx.compose.runtime.setValue
 import app.infinity.mpvz.ui.player.PlaybackSession
 import kotlinx.coroutines.delay
 
-/** A stall must persist this long before the spinner appears, so ordinary seeks never flash it. */
-private const val BUFFERING_SHOW_DELAY_MS = 350L
+/** A stall must persist this long before the spinner appears, so ordinary seeks and brief network blips never flash it. */
+private const val BUFFERING_SHOW_DELAY_MS = 600L
 
 /** Once shown the spinner lingers this long, so a cache oscillating at mpv's threshold can't strobe. */
-private const val BUFFERING_HIDE_DELAY_MS = 300L
+private const val BUFFERING_HIDE_DELAY_MS = 500L
 
 /**
  * Resolved buffering state for the player overlay.
@@ -62,6 +62,15 @@ internal fun rememberBufferingState(
   val demuxerCacheDuration by PlaybackSession.propDouble["demuxer-cache-duration"].collectAsState()
 
   val isCacheStall = pausedForCache == true
+  val hasCacheDeficit = (cacheBufferingState != null && cacheBufferingState!! in 0 until 100)
+  // Only treat the demuxer as starved when we have a confirmed near-zero cache and the core
+  // is idle. A null demuxerCacheDuration simply means the property hasn't been reported yet
+  // (e.g. during initial file open) — that is not a stall. The threshold of 1.5s prevents
+  // the spinner from flickering on natural micro-dips that mpv's cache oscillates through
+  // during normal streaming, especially on variable-bitrate or live content.
+  val isDemuxerStarved = (coreIdle == true && demuxerCacheDuration != null && demuxerCacheDuration!! <= 1.5)
+  val isActuallyBuffering = isCacheStall || (hasCacheDeficit && isDemuxerStarved)
+
   val stalled =
     enabled &&
       (
@@ -70,7 +79,7 @@ internal fun rememberBufferingState(
             paused != true &&
               eofReached != true &&
               idleActive != true &&
-              (isCacheStall || coreIdle == true)
+              isActuallyBuffering
           )
       )
 

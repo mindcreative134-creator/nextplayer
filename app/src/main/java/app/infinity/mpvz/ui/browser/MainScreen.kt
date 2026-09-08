@@ -48,6 +48,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -114,6 +116,7 @@ import kotlin.math.roundToInt
 object MainScreen : Screen {
   internal enum class MainTab {
     HOME,
+    SHORTS,
     MUSIC,
     RECENTS,
     PLAYLISTS,
@@ -184,6 +187,7 @@ object MainScreen : Screen {
       ) {
         buildList {
           if (showHomeTab) add(MainTab.HOME)
+          add(MainTab.SHORTS)
           if (showMusicTab) add(MainTab.MUSIC)
           if (showRecentsTab) add(MainTab.RECENTS)
           if (showPlaylistsTab) add(MainTab.PLAYLISTS)
@@ -304,6 +308,7 @@ object MainScreen : Screen {
     val selectedTabTitleLength =
       when (selectedTab) {
         MainTab.HOME -> 36.dp
+        MainTab.SHORTS -> 42.dp
         MainTab.MUSIC -> 36.dp
         MainTab.RECENTS -> 48.dp
         MainTab.PLAYLISTS -> 52.dp
@@ -386,6 +391,7 @@ object MainScreen : Screen {
               val tab = visibleTabs.getOrNull(page) ?: return@HorizontalPager
               when (tab) {
                 MainTab.HOME -> FolderListScreen.Content()
+                MainTab.SHORTS -> app.infinity.mpvz.ui.browser.shorts.ShortsContent()
                 MainTab.MUSIC -> MusicLibraryContent()
                 MainTab.RECENTS -> RecentlyPlayedScreen.Content()
                 MainTab.PLAYLISTS -> PlaylistScreen.Content()
@@ -530,6 +536,7 @@ private fun ExpressivePillNavigationBar(
   fun activeTabWidth(tab: MainScreen.MainTab): androidx.compose.ui.unit.Dp =
     when (tab) {
       MainScreen.MainTab.HOME -> 92.dp
+      MainScreen.MainTab.SHORTS -> 96.dp
       MainScreen.MainTab.MUSIC -> 92.dp
       MainScreen.MainTab.RECENTS -> 104.dp
       MainScreen.MainTab.PLAYLISTS -> 108.dp
@@ -577,31 +584,42 @@ private fun ExpressivePillNavigationBar(
 
   Surface(
     modifier = modifier,
-    shape = CircleShape,
-    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    tonalElevation = 6.dp,
-    shadowElevation = 8.dp,
+    shape = RoundedCornerShape(28.dp),
+    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+    tonalElevation = 8.dp,
+    shadowElevation = 10.dp,
     border =
       BorderStroke(
         width = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
       ),
   ) {
     Box(
       modifier =
         Modifier
           .wrapContentWidth()
-          .padding(horizontal = startPadding, vertical = 6.dp),
+          .padding(horizontal = startPadding, vertical = 5.dp),
     ) {
-      // Sliding background pill indicator
+      // Sliding background pill indicator with smooth gradient and subtle accent border
       Box(
         modifier =
           Modifier
             .offset(x = indicatorLeft - startPadding, y = 0.dp)
             .width(indicatorWidth)
             .height(44.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+              androidx.compose.ui.graphics.Brush.horizontalGradient(
+                colors = listOf(
+                  MaterialTheme.colorScheme.primaryContainer,
+                  MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                ),
+              ),
+            )
+            .border(
+              BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+              RoundedCornerShape(22.dp),
+            ),
       )
 
       // Tab buttons row positioned directly on top of the track
@@ -648,6 +666,13 @@ private fun ExpressivePillNavigationBar(
                     tint = contentColor,
                     modifier = Modifier.size(22.dp),
                   )
+                MainScreen.MainTab.SHORTS ->
+                  Icon(
+                    Icons.RoundedFilled.PlayCircle,
+                    contentDescription = "Shorts",
+                    tint = contentColor,
+                    modifier = Modifier.size(22.dp),
+                  )
                 MainScreen.MainTab.MUSIC ->
                   Icon(
                     Icons.RoundedFilled.Audiotrack,
@@ -691,6 +716,7 @@ private fun ExpressivePillNavigationBar(
                   text =
                     when (tab) {
                       MainScreen.MainTab.HOME -> stringResource(R.string.ui_home)
+                      MainScreen.MainTab.SHORTS -> "Shorts"
                       MainScreen.MainTab.MUSIC -> stringResource(R.string.ui_music)
                       MainScreen.MainTab.RECENTS -> stringResource(R.string.ui_recents)
                       MainScreen.MainTab.PLAYLISTS -> stringResource(R.string.ui_playlists)

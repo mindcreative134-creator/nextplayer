@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+﻿<?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="generic_reset">Réinitialiser</string>
   <string name="generic_share">Partager</string>
@@ -17,7 +17,7 @@
   <string name="pref_appearance_amoled_mode_title">Mode noir AMOLED</string>
   <string name="pref_appearance_amoled_mode_summary">Utiliser un arrière-plan noir pur pour les thèmes sombres</string>
   <string name="pref_appearance_system_font_title">Utiliser la police système</string>
-  <string name="pref_appearance_system_font_summary">Utiliser la police système Android dans Mpv∞ à la place de Google Sans Flex</string>
+  <string name="pref_appearance_system_font_summary">Utiliser la police système Android dans NextPlayer à la place de Google Sans Flex</string>
   <string name="pref_appearance_material_you_title">Material You</string>
   <string name="pref_appearance_material_you_summary">Activer les couleurs dynamiques</string>
   <string name="pref_appearance_material_you_summary_disabled">Disponible uniquement sur Android 12 et versions ultérieures</string>
@@ -314,7 +314,7 @@ Suivant : NEXT</string>
   <string name="pref_app_language_title">Langue</string>
   <string name="pref_app_language_system_default">Langue du système</string>
   <string name="pref_app_language_restart_title">Redémarrage requis</string>
-  <string name="pref_app_language_restart_message">Redémarrez Mpv∞ pour appliquer la nouvelle langue.</string>
+  <string name="pref_app_language_restart_message">Redémarrez NextPlayer pour appliquer la nouvelle langue.</string>
   <string name="pref_app_language_restart_now">Redémarrer maintenant</string>
   <string name="pref_advanced_mpv_conf_storage_location">Choisir l’emplacement de stockage de la configuration</string>
   <string name="pref_advanced_mpv_conf">Modifier mpv.conf</string>
@@ -527,7 +527,7 @@ Suivant : NEXT</string>
   <string name="notification_repeat_all">Tout répéter</string>
   <string name="notification_chapter_counter">Chapitre %1$d sur %2$d</string>
   <string name="notification_permission_denied">L’autorisation des notifications est requise pour les commandes de lecture en arrière-plan.</string>
-  <string name="notification_permission_disabled">Les notifications sont désactivées pour Mpv∞. Activez-les pour afficher les commandes de lecture.</string>
+  <string name="notification_permission_disabled">Les notifications sont désactivées pour NextPlayer. Activez-les pour afficher les commandes de lecture.</string>
   <string name="notification_disabled_in_advanced_settings">Activez les notifications dans les paramètres avancés pour utiliser la lecture en arrière-plan.</string>
   <string name="pref_advanced_notification_style">Style de notification</string>
   <!-- Media Info Activity -->
@@ -1276,15 +1276,15 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="ui_allow_access">AUTORISER L’ACCÈS</string>
   <string name="ui_why_do_i_see_this">Pourquoi est-ce affiché ?</string>
   <string name="ui_why_this_permission_is_needed">Pourquoi cette autorisation est nécessaire</string>
-  <string name="ui_mpvrx_needs_access_to_your_video_files_to_provide_its_core_funct">Mpv∞ doit accéder à vos fichiers vidéo pour assurer ses fonctions essentielles de lecteur multimédia.</string>
+  <string name="ui_NextPlayer_needs_access_to_your_video_files_to_provide_its_core_funct">NextPlayer doit accéder à vos fichiers vidéo pour assurer ses fonctions essentielles de lecteur multimédia.</string>
   <string name="ui_the_permission_is_used_exclusively_for">Cette autorisation est utilisée exclusivement pour :</string>
   <string name="ui_discovering_and_displaying_your_video_files_n_playing_media_cont">• Détecter et afficher vos fichiers vidéo
 • Lire du contenu multimédia
 • Charger des fichiers de sous-titres</string>
-  <string name="ui_mpvrx_has_always_required_storage_access_permission_as_it_s_esse">Mpv∞ a toujours nécessité l’accès au stockage, indispensable pour trouver tous les fichiers multimédias et de sous-titres de votre appareil, y compris ceux que le système ne prend pas en charge.</string>
+  <string name="ui_NextPlayer_has_always_required_storage_access_permission_as_it_s_esse">NextPlayer a toujours nécessité l’accès au stockage, indispensable pour trouver tous les fichiers multimédias et de sous-titres de votre appareil, y compris ceux que le système ne prend pas en charge.</string>
   <string name="ui_however_due_to_a_change_in_security_policy_apps_built_for_androi">Cependant, en raison d’un changement de politique de sécurité, les applications conçues pour Android 11 et versions ultérieures nécessitent désormais une autorisation supplémentaire pour conserver le même accès.</string>
   <string name="ui_please_know_that_this_permission_is_only_used_for_the_auto_disco">Cette autorisation sert uniquement à détecter automatiquement les fichiers multimédias et de sous-titres sur votre appareil et ne nous permet en aucun cas d’accéder aux données privées stockées par d’autres applications.</string>
-  <string name="ui_mpvrx_is_an_open_source_project_you_can_review_the_source_code_a">Mpv∞ est un projet open source. Vous pouvez consulter le code source et vérifier l’utilisation des autorisations dans notre dépôt GitHub :</string>
+  <string name="ui_NextPlayer_is_an_open_source_project_you_can_review_the_source_code_a">NextPlayer est un projet open source. Vous pouvez consulter le code source et vérifier l’utilisation des autorisations dans notre dépôt GitHub :</string>
   <string name="ui_be_rest_assured_your_privacy_is_our_utmost_priority_and_we_neith">Soyez rassuré : votre confidentialité est notre priorité absolue. Nous n’accédons pas à vos fichiers à d’autres fins, ne les transférons pas et ne les stockons pas sur nos serveurs. Ils restent sur votre appareil.</string>
   <string name="ui_app_permissions">Autorisations de l’application</string>
   <string name="ui_permissions_setup_subtitle">Configurez les autorisations pour activer les fonctionnalités principales et la lecture média.</string>
@@ -1377,14 +1377,14 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="ui_github">GitHub</string>
   <string name="ui_device_info">Informations sur l’appareil</string>
   <string name="ui_buy_me_a_coffee">Offrez-moi un café</string>
-  <string name="ui_if_you_enjoy_mpvrx_consider_supporting_its_development_every_bit">Si vous appréciez Mpv∞, pensez à soutenir son développement. Chaque contribution compte !</string>
+  <string name="ui_if_you_enjoy_NextPlayer_consider_supporting_its_development_every_bit">Si vous appréciez NextPlayer, pensez à soutenir son développement. Chaque contribution compte !</string>
   <string name="ui_support_link">Identifiant UPI</string>
-  <string name="ui_zhinfinity_github">github.com/ZHINFINITY/Mpv-infinity</string>
+  <string name="ui_zhinfinity_github">github.com/mindcreative134-creator/nextplayer</string>
   <string name="ui_visit_github">Envoyer votre soutien</string>
   <string name="ui_auto_check_for_updates">Rechercher automatiquement les mises à jour</string>
   <string name="ui_check_on_startup">Vérifier au démarrage</string>
   <string name="ui_check_for_updates_now">Rechercher des mises à jour maintenant</string>
-  <string name="ui_core_open_source_dependencies_used_by_mpvrx">Principales dépendances open source utilisées par Mpv∞.</string>
+  <string name="ui_core_open_source_dependencies_used_by_NextPlayer">Principales dépendances open source utilisées par NextPlayer.</string>
   <string name="ui_copy_upi_id">Copier l’identifiant UPI</string>
   <string name="ui_already_using_latest_version">Vous utilisez déjà la dernière version</string>
   <string name="ui_support_link_copied">Identifiant UPI copié !</string>
@@ -1590,8 +1590,8 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="syncplay_connecting">Connexion…</string>
   <string name="syncplay_player_status">Syncplay : %1$s (%2$d utilisateurs)</string>
   <!-- Additional synchronized strings -->
-  <string name="app_name">Mpv∞</string>
-  <string name="github_repo_url">https://github.com/ZHINFINITY/Mpv-infinity</string>
+  <string name="app_name">NextPlayer</string>
+  <string name="github_repo_url">https://github.com/mindcreative134-creator/nextplayer</string>
   <string name="hdr_mode_bt2020">BT.2020</string>
   <string name="hdr_mode_bt2100_hlg">BT.2100 HLG</string>
   <string name="hdr_mode_bt2100_pq">BT.2100 PQ</string>
@@ -1931,7 +1931,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="seerr_approve">Approuver</string>
   <string name="seerr_decline">Refuser</string>
   <string name="seerr_delete">Supprimer</string>
-  <string name="seerr_play_in_jellyfin">Lire dans Mpv∞</string>
+  <string name="seerr_play_in_jellyfin">Lire dans NextPlayer</string>
   <string name="seerr_open_in_jellyfin">Ouvrir dans Jellyfin</string>
   <string name="seerr_available_on_jellyfin">Disponible dans la bibliothèque</string>
   <string name="seerr_search_placeholder">Rechercher des films et séries sur Seerr…</string>
@@ -1966,7 +1966,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="ui_update_channel">Canal de mise à jour</string>
   <string name="ui_stable_releases">Stable</string>
   <string name="ui_preview_builds">Aperçu (Nightly)</string>
-  <string name="ui_preview_builds_summary">Les builds d’aperçu sont des versions de test signées publiées à partir des dernières modifications de Mpv∞ et peuvent être instables.</string>
+  <string name="ui_preview_builds_summary">Les builds d’aperçu sont des versions de test signées publiées à partir des dernières modifications de NextPlayer et peuvent être instables.</string>
   <string name="update_whats_new">Nouveautés</string>
   <string name="update_no_release_notes">Aucune note de version fournie.</string>
   <string name="update_ready_to_install">Prêt à installer</string>
@@ -2005,7 +2005,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="storage_permission_needed_desc">Accordez l\'accès au stockage pour parcourir et lire vos médias.</string>
   <string name="storage_permission_grant">Accorder l\'accès</string>
   <string name="pref_player_web_stream_links_title">Ouvrir les liens de sites de streaming</string>
-  <string name="pref_player_web_stream_links_summary">Proposer Mpv∞ pour les liens YouTube, Vimeo, Twitch, Odysee et Bilibili. Désactivez pour laisser leurs applications les ouvrir.</string>
+  <string name="pref_player_web_stream_links_summary">Proposer NextPlayer pour les liens YouTube, Vimeo, Twitch, Odysee et Bilibili. Désactivez pour laisser leurs applications les ouvrir.</string>
 
   <!-- Downloads -->
   <string name="downloads_title">Téléchargements</string>
@@ -2042,3 +2042,5 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="downloads_play">Lire</string>
   <string name="downloads_open_downloads">Ouvrir les téléchargements</string>
 </resources>
+
+

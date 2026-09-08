@@ -193,7 +193,7 @@ object ClipExportManager {
 
   private fun createTemporaryOutput(context: Context): File {
     val directory = File(context.cacheDir, "clips").apply { mkdirs() }
-    return File.createTempFile("Mpv∞-clip-", ".mp4", directory).apply { delete() }
+    return File.createTempFile("NextPlayer-clip-", ".mp4", directory).apply { delete() }
   }
 
   private fun resolveSource(
@@ -263,7 +263,7 @@ object ClipExportManager {
         ContentValues().apply {
           put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
           put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-          put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/Mpv∞/Clips")
+          put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/NextPlayer/Clips")
           put(MediaStore.Video.Media.IS_PENDING, 1)
         }
       val uri =
@@ -291,8 +291,8 @@ object ClipExportManager {
     // storage access, fall back to the app's external Movies directory rather than losing output.
     val publicResult =
       runCatching {
-        val directory = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Mpv∞/Clips")
-        check(directory.exists() || directory.mkdirs()) { "Unable to create Movies/Mpv∞/Clips" }
+        val directory = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "NextPlayer/Clips")
+        check(directory.exists() || directory.mkdirs()) { "Unable to create Movies/NextPlayer/Clips" }
         val target = uniqueFile(directory, displayName)
         source.copyTo(target)
         source.delete()

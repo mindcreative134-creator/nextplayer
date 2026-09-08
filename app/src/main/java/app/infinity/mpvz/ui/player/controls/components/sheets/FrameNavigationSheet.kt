@@ -76,6 +76,7 @@ import app.infinity.mpvz.preferences.PlayerPreferences
 import app.infinity.mpvz.preferences.preference.collectAsState
 import app.infinity.mpvz.ui.icons.Icon
 import app.infinity.mpvz.ui.icons.Icons
+import app.infinity.mpvz.ui.player.screenshot.ScreenshotFormat
 import app.infinity.mpvz.ui.player.screenshot.ScreenshotSaver
 import app.infinity.mpvz.ui.player.screenshot.ScreenshotSettings
 import app.infinity.mpvz.ui.theme.spacing
@@ -114,6 +115,16 @@ fun FrameNavigationSheet(
   var includeSubtitlesInSnapshot by remember { mutableStateOf(includeSubtitlesPrefState) }
   LaunchedEffect(includeSubtitlesPrefState) {
     includeSubtitlesInSnapshot = includeSubtitlesPrefState
+  }
+
+  val screenshotFormat by playerPreferences.screenshotFormat.collectAsState()
+  val pngCompression by playerPreferences.screenshotPngCompression.collectAsState()
+  val formatLabel = remember(screenshotFormat, pngCompression) {
+    when (screenshotFormat) {
+      ScreenshotFormat.PNG -> if (pngCompression == 0) "PNG (Lossless)" else "PNG (L$pngCompression)"
+      ScreenshotFormat.JPG, ScreenshotFormat.JPEG -> "JPG"
+      ScreenshotFormat.WEBP -> "WEBP"
+    }
   }
 
   // Use rememberUpdatedState for lambda parameters used in effects
@@ -212,6 +223,7 @@ fun FrameNavigationSheet(
     isSnapshotLoading = isSnapshotLoading,
     isFrameStepping = isFrameStepping,
     includeSubtitles = includeSubtitlesInSnapshot,
+    formatLabel = formatLabel,
     onFrameSteps = ::enqueueFrameSteps,
     onPlayPause = {
       frameStepJob?.cancel()
@@ -284,6 +296,7 @@ private fun FrameReviewOverlay(
   isSnapshotLoading: Boolean,
   isFrameStepping: Boolean,
   includeSubtitles: Boolean,
+  formatLabel: String = "PNG",
   onFrameSteps: (Int) -> Unit,
   onPlayPause: () -> Unit,
   onSnapshot: () -> Unit,
@@ -513,6 +526,7 @@ private fun FrameReviewOverlay(
               IncludeSubsToggle(
                 includeSubs = includeSubtitles,
                 setIncludeSubs = onIncludeSubtitlesChanged,
+                formatLabel = formatLabel,
                 modifier = Modifier.widthIn(min = 180.dp, max = 220.dp),
               )
             }
@@ -529,6 +543,7 @@ private fun FrameReviewOverlay(
               IncludeSubsToggle(
                 includeSubs = includeSubtitles,
                 setIncludeSubs = onIncludeSubtitlesChanged,
+                formatLabel = formatLabel,
                 modifier = Modifier.fillMaxWidth(),
               )
               Box(
@@ -747,6 +762,7 @@ private fun ControlButtons(
 private fun IncludeSubsToggle(
   includeSubs: Boolean,
   setIncludeSubs: (Boolean) -> Unit,
+  formatLabel: String,
   modifier: Modifier = Modifier,
 ) {
   Row(
@@ -754,17 +770,28 @@ private fun IncludeSubsToggle(
       modifier
         .padding(bottom = MaterialTheme.spacing.extraSmall),
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.Start,
+    horizontalArrangement = Arrangement.SpaceBetween,
   ) {
-    IconSwitch(
-      checked = includeSubs,
-      onCheckedChange = setIncludeSubs,
-      modifier = Modifier.scale(0.8f),
-    )
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.Start,
+    ) {
+      IconSwitch(
+        checked = includeSubs,
+        onCheckedChange = setIncludeSubs,
+        modifier = Modifier.scale(0.8f),
+      )
+      Text(
+        text = stringResource(R.string.player_sheets_frame_navigation_include_subtitles),
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(start = MaterialTheme.spacing.smaller),
+      )
+    }
     Text(
-      text = stringResource(R.string.player_sheets_frame_navigation_include_subtitles),
-      style = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier.padding(start = MaterialTheme.spacing.smaller),
+      text = formatLabel,
+      style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+      color = MaterialTheme.colorScheme.primary,
+      modifier = Modifier.padding(end = MaterialTheme.spacing.extraSmall),
     )
   }
 }

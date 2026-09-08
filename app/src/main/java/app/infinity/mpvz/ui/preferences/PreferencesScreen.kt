@@ -224,10 +224,20 @@ object PreferencesScreen : Screen {
                   stringResource(R.string.pref_section_general),
                   stringResource(R.string.pref_player_seeking_title),
                   stringResource(R.string.pref_section_display_controls),
-                  stringResource(R.string.pref_screenshots_section),
                 ).joinToString(", "),
               icon = Icons.RoundedFilled.Slideshow,
               screen = PlayerPreferencesScreen,
+            ),
+            SettingsDestination(
+              title = stringResource(R.string.pref_screenshots_section),
+              summary =
+                listOf(
+                  stringResource(R.string.ui_image_format),
+                  stringResource(R.string.ui_png_compression),
+                  stringResource(R.string.ui_include_subtitles_in_screenshots),
+                ).joinToString(", "),
+              icon = Icons.RoundedFilled.Aperture,
+              screen = ScreenshotsPreferencesScreen,
             ),
             SettingsDestination(
               title = stringResource(R.string.pref_decoder),

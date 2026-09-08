@@ -1,15 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <group
-      android:scaleX="0.8"
-      android:scaleY="0.8"
-      android:translateX="15"
-      android:translateY="10.8">
+
+    <!-- Rotated Ring -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-35">
+        <path
+            android:pathData="M54,27 C68.5,27 81,39 81,54 C81,69 68.5,81 54,81 C39.5,81 27,69 27,54 C27,39 39.5,27 54,27 Z"
+            android:strokeWidth="6.5"
+            android:strokeColor="#FFFFFFFF"
+            android:fillColor="#00000000" />
+    </group>
+
+    <!-- Center Play Button -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M36,30 L36,78 L73,54 Z"/>
-  </group>
+        android:pathData="M47,41 L66,52 C68,53.2 68,55.8 66,57 L47,68 C45,69.2 42.5,67.7 42.5,65.5 L42.5,43.5 C42.5,41.3 45,39.8 47,41 Z"
+        android:fillColor="#FFFFFFFF" />
 </vector>

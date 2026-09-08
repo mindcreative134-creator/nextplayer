@@ -10,6 +10,7 @@
 package app.infinity.mpvz.ui.player.controls
 
 import app.infinity.mpvz.ui.player.DeclaredPlaybackMediaKind
+import app.infinity.mpvz.ui.player.PlaybackEngineMode
 import app.infinity.mpvz.ui.player.PlaybackPhase
 import app.infinity.mpvz.ui.player.PlaybackSession
 import app.infinity.mpvz.ui.player.declaredMediaKind
@@ -402,7 +403,7 @@ fun PlayerControls(
         speed = playbackSpeed ?: playerPreferences.defaultSpeed.get(),
         onSpeedChange = {
         val speed = it.toFixed(2)
-        if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed.toFloat())
+        if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed)
         else PlaybackSession.setPropertyFloat("speed", speed)
       },
         onMakeDefaultSpeed = { playerPreferences.defaultSpeed.set(it.toFixed(2)) },
@@ -412,7 +413,7 @@ fun PlayerControls(
         speedPresets = sortedSpeedPresets,
         onResetDefaultSpeed = {
           val speed = playerPreferences.defaultSpeed.deleteAndGet().toFixed(2)
-          if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed.toFloat())
+          if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed)
           else PlaybackSession.setPropertyFloat("speed", speed)
         },
         sleepTimerTimeRemaining = sleepTimerTimeRemaining,
@@ -1929,7 +1930,7 @@ fun PlayerControls(
       speed = playbackSpeed ?: playerPreferences.defaultSpeed.get(),
       onSpeedChange = {
         val speed = it.toFixed(2)
-        if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed.toFloat())
+        if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed)
         else PlaybackSession.setPropertyFloat("speed", speed)
       },
       onMakeDefaultSpeed = { playerPreferences.defaultSpeed.set(it.toFixed(2)) },
@@ -1939,7 +1940,7 @@ fun PlayerControls(
       speedPresets = sortedSpeedPresets,
       onResetDefaultSpeed = {
         val speed = playerPreferences.defaultSpeed.deleteAndGet().toFixed(2)
-        if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed.toFloat())
+        if (activity?.isNativeEngineActive() == true) activity.nativeSetSpeed(speed)
         else PlaybackSession.setPropertyFloat("speed", speed)
       },
       sleepTimerTimeRemaining = sleepTimerTimeRemaining,
@@ -2022,6 +2023,19 @@ fun PlayerControls(
               compact = true,
             )
           },
+        )
+      }
+    }
+
+    if (paused == true && !areControlsLocked && !areSlidersShown && !showBufferingIndicator && sheetShown == Sheets.None && panel == Panels.None) {
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(bottom = if (isPortrait) 130.dp else 80.dp),
+        contentAlignment = Alignment.Center,
+      ) {
+        app.infinity.mpvz.ads.PauseAdCard(
+          isPaused = true,
         )
       }
     }

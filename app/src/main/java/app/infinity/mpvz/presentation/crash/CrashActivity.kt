@@ -124,19 +124,16 @@ class CrashActivity : AppCompatActivity() {
 
   private fun deleteDatabase(): Boolean =
     try {
-      val dbFile = getDatabasePath("Mpv∞.db")
-      val dbWalFile = File(dbFile.parent, "Mpv∞.db-wal")
-      val dbShmFile = File(dbFile.parent, "Mpv∞.db-shm")
+      val dbFile = getDatabasePath("NextPlayer.db")
+      val dbWalFile = File(dbFile.parent, "NextPlayer.db-wal")
+      val dbShmFile = File(dbFile.parent, "NextPlayer.db-shm")
+      val legacyDbFile = getDatabasePath("Mpv∞.db")
+      val legacyDbWalFile = File(legacyDbFile.parent, "Mpv∞.db-wal")
+      val legacyDbShmFile = File(legacyDbFile.parent, "Mpv∞.db-shm")
 
       var deleted = false
-      if (dbFile.exists()) {
-        deleted = dbFile.delete() || deleted
-      }
-      if (dbWalFile.exists()) {
-        deleted = dbWalFile.delete() || deleted
-      }
-      if (dbShmFile.exists()) {
-        deleted = dbShmFile.delete() || deleted
+      listOf(dbFile, dbWalFile, dbShmFile, legacyDbFile, legacyDbWalFile, legacyDbShmFile).forEach { f ->
+        if (f.exists()) deleted = f.delete() || deleted
       }
       deleted
     } catch (_: Exception) {
@@ -152,6 +149,8 @@ class CrashActivity : AppCompatActivity() {
         "database",
         "sqlite",
         "room",
+        "NextPlayer.db",
+        "NextPlayerDatabase",
         "Mpv∞.db",
         "Mpv∞Database",
         "android.database",
@@ -191,7 +190,7 @@ class CrashActivity : AppCompatActivity() {
       }
 
       withContext(NonCancellable) {
-        val file = File(activity.cacheDir, "Mpv∞_logs.txt")
+        val file = File(activity.cacheDir, "NextPlayer_logs.txt")
         if (file.exists()) file.delete()
         file.createNewFile()
         file.appendText(concatLogs(deviceInfo, exceptionString, logcat))
@@ -214,6 +213,7 @@ class CrashActivity : AppCompatActivity() {
     ): String =
       StringBuilder()
         .apply {
+          appendLine("=== NextPlayer Diagnostic Log Dump ===")
           appendLine(deviceInfo)
           appendLine()
           if (!crashLogs.isNullOrBlank()) {

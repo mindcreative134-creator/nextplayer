@@ -137,6 +137,7 @@ enum class Sheets {
   AudioProperties,
   VisualizerStyle,
   Lyrics,
+  ScreenshotSettings,
 }
 
 enum class Panels {

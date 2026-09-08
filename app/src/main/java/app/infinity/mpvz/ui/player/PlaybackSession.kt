@@ -12,9 +12,11 @@ package app.infinity.mpvz.ui.player
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import app.infinity.mpvz.BuildConfig
 import android.view.Surface
 import app.infinity.mpvz.data.network.proxy.HlsStreamingProxy
 import app.infinity.mpvz.data.network.proxy.NetworkStreamingProxy
@@ -732,9 +734,11 @@ object PlaybackSession : MPVLib.EventObserver {
       clearTimelinePropertiesLocked()
       val userAgent = PlaybackHttpHeaders.userAgent(resolvedItem.headers)
       val headerFields = PlaybackHttpHeaders.toMpvHeaderFields(resolvedItem.headers)
-      // URL-specific headers are request metadata, not a global mpv preference. Always apply the
-      // media UA, then restore the post-mpv.conf default for a headerless item.
-      MPVLib.setPropertyString("user-agent", userAgent ?: defaultUserAgent.orEmpty())
+      val effectiveUserAgent =
+        userAgent
+          ?: defaultUserAgent?.takeIf { it.isNotBlank() }
+          ?: "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}; ${Build.MODEL}) NextPlayer/${BuildConfig.VERSION_NAME}"
+      MPVLib.setPropertyString("user-agent", effectiveUserAgent)
       MPVLib.setPropertyString("http-header-fields", headerFields)
       MPVLib.setPropertyString("force-media-title", "")
 

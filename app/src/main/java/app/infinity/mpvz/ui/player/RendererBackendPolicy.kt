@@ -34,9 +34,9 @@ internal object RendererBackendPolicy {
     if (!hardwareDecodingEnabled) return "no"
 
     return if (canUseDirectMediaCodec(usesVulkan, buildSupportsMediaCodecVulkan)) {
-      "mediacodec,mediacodec-copy,no"
+      "mediacodec"
     } else {
-      "mediacodec-copy,no"
+      "mediacodec-copy"
     }
   }
 }

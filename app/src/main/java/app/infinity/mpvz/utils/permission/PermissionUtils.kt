@@ -127,20 +127,13 @@ object PermissionUtils {
   }
 
   /**
-   * Returns READ_EXTERNAL_STORAGE permission for all Android versions.
-   * On Android 11+, MANAGE_EXTERNAL_STORAGE provides full file access.
+   * Returns storage permission for the current Android version.
+   * On Android 13+, requests media-specific permissions.
+   * On Android 12 and below (including Android 9 / API 28), requests READ_EXTERNAL_STORAGE.
    */
   fun getStoragePermission(audioOnly: Boolean = false): String =
     when {
-      Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q -> {
-        // Legacy storage on Android 10 and below needs write access for file management.
-        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-      }
-
       Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-        // Android 13+: request media-specific permission.
-        // Audio-only browsers (e.g. Music > Folders) need READ_MEDIA_AUDIO, not READ_MEDIA_VIDEO,
-        // or MediaStore audio queries return nothing even though the user "granted" access.
         if (audioOnly) {
           android.Manifest.permission.READ_MEDIA_AUDIO
         } else {
@@ -152,6 +145,23 @@ object PermissionUtils {
     }
 
   /**
+   * Checks if storage read permission is granted across all Android versions.
+   * On Android <= 32 (including Android 9 / Xiaomi Redmi 6 Pro), having EITHER
+   * READ_EXTERNAL_STORAGE or WRITE_EXTERNAL_STORAGE grants full media access.
+   */
+  fun hasStoragePermission(context: Context, audioOnly: Boolean = false): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val perm = if (audioOnly) android.Manifest.permission.READ_MEDIA_AUDIO else android.Manifest.permission.READ_MEDIA_VIDEO
+      return androidx.core.content.ContextCompat.checkSelfPermission(context, perm) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && android.os.Environment.isExternalStorageManager()) {
+      return true
+    }
+    return androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+      androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+  }
+
+  /**
    * Creates a permission state for storage access.
    */
   @OptIn(ExperimentalPermissionsApi::class)
@@ -160,8 +170,31 @@ object PermissionUtils {
     rememberPermissionState(getStoragePermission(audioOnly))
 
   /**
+   * Opens application details settings in the Android system.
+   * Essential when permissions are permanently denied or suppressed by OEM managers like Xiaomi MIUI.
+   */
+  fun openAppSettings(context: Context) {
+    try {
+      val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = android.net.Uri.parse("package:${context.packageName}")
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      context.startActivity(intent)
+    } catch (e: Exception) {
+      Log.e(FILE_ACCESS_TAG, "Failed to open app details settings", e)
+      try {
+        val fallback = android.content.Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+          addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(fallback)
+      } catch (_: Exception) {}
+    }
+  }
+
+  /**
    * Handles storage permission and invokes [onPermissionGranted] when granted.
    * On Android 11+, also checks MANAGE_EXTERNAL_STORAGE permission.
+   * On Android <= 29 (e.g. Xiaomi Redmi 6 Pro on Android 9), requests both READ and WRITE.
    *
    * @param audioOnly When true, requests READ_MEDIA_AUDIO instead of READ_MEDIA_VIDEO on Android 13+,
    * for screens that only browse the audio library (e.g. Music > Folders).
@@ -191,10 +224,18 @@ object PermissionUtils {
       }
     }
 
-    // Wrap permission state to consider MANAGE_EXTERNAL_STORAGE on Android 11+
+    // Wrap permission state to consider MANAGE_EXTERNAL_STORAGE on Android 11+ and
+    // existing READ/WRITE storage permissions on Android <= 32 (e.g. Android 9 on Xiaomi)
     val effectivePermissionState =
       remember(permissionState.status, lifecycleTrigger) {
-        if (!BuildConfig.SCOPED_STORAGE_ONLY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (hasStoragePermission(context, audioOnly)) {
+          object : PermissionState {
+            override val permission = permissionState.permission
+            override val status = PermissionStatus.Granted
+
+            override fun launchPermissionRequest() = permissionState.launchPermissionRequest()
+          }
+        } else if (!BuildConfig.SCOPED_STORAGE_ONLY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
           if (android.os.Environment.isExternalStorageManager()) {
             object : PermissionState {
               override val permission = permissionState.permission
@@ -210,17 +251,28 @@ object PermissionUtils {
               override fun launchPermissionRequest() = permissionState.launchPermissionRequest()
             }
           }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-          android.os.Environment.isExternalStorageManager()
-        ) {
+        } else {
           object : PermissionState {
             override val permission = permissionState.permission
-            override val status = PermissionStatus.Granted
+            override val status = permissionState.status
 
-            override fun launchPermissionRequest() = permissionState.launchPermissionRequest()
+            override fun launchPermissionRequest() {
+              val activity = context as? Activity
+              if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q && activity != null) {
+                // Android 9 & 10 (e.g. Xiaomi Redmi 6 Pro / MIUI): request both READ and WRITE
+                androidx.core.app.ActivityCompat.requestPermissions(
+                  activity,
+                  arrayOf(
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                  ),
+                  1001,
+                )
+              } else {
+                permissionState.launchPermissionRequest()
+              }
+            }
           }
-        } else {
-          permissionState
         }
       }
 

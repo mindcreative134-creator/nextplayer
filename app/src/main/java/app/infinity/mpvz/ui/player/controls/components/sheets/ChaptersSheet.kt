@@ -45,9 +45,11 @@ fun ChaptersSheet(
   val listState = rememberLazyListState()
 
   LaunchedEffect(currentChapter, chapters) {
-    val index = if (currentChapter != null) chapters.indexOf(currentChapter) else -1
-    if (index >= 0) {
-      listState.scrollToItem(index)
+    if (chapters.isNotEmpty()) {
+      val index = if (currentChapter != null) chapters.indexOf(currentChapter) else -1
+      if (index >= 0) {
+        listState.scrollToItem(index)
+      }
     }
   }
 
@@ -57,14 +59,23 @@ fun ChaptersSheet(
         modifier
           .padding(vertical = MaterialTheme.spacing.medium),
     ) {
-      LazyColumn(state = listState) {
-        itemsIndexed(chapters) { index, chapter ->
-          ChapterTrack(
-            chapter = chapter,
-            index = index,
-            selected = currentChapter == chapter,
-            onClick = { onClick(chapter) },
-          )
+      if (chapters.isEmpty()) {
+        Text(
+          text = "No chapters found",
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.small),
+        )
+      } else {
+        LazyColumn(state = listState) {
+          itemsIndexed(chapters) { index, chapter ->
+            ChapterTrack(
+              chapter = chapter,
+              index = index,
+              selected = currentChapter == chapter,
+              onClick = { onClick(chapter) },
+            )
+          }
         }
       }
     }

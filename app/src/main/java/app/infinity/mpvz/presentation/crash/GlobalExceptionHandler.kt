@@ -11,6 +11,12 @@ package app.infinity.mpvz.presentation.crash
 
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import java.io.PrintWriter
+import java.io.StringWriter
+import java.io.File
 import kotlin.system.exitProcess
 
 class GlobalExceptionHandler(
@@ -21,11 +27,50 @@ class GlobalExceptionHandler(
     t: Thread,
     e: Throwable,
   ) {
-    val intent = Intent(context, activity)
-    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-    intent.putExtra("exception", e.stackTraceToString())
-    context.startActivity(intent)
-    exitProcess(0)
+    try {
+      // Persist a crash log file so the crash screen and debug-log viewer can surface it.
+      persistCrashLog(e)
+
+      val intent = Intent(context, activity)
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+      val stackTrace = e.stackTraceToString()
+      val trimmedTrace =
+        if (stackTrace.length > 50_000) {
+          stackTrace.take(50_000) + "\n...[truncated]"
+        } else {
+          stackTrace
+        }
+      intent.putExtra("exception", trimmedTrace)
+      context.startActivity(intent)
+    } catch (_: Throwable) {
+      // Prevent secondary crash loops or system ANR stalls if CrashActivity fails to start
+    }
+
+    // Give the CrashActivity a short grace window to launch and render before the process exit.
+    // Calling exitProcess() immediately can cut off the just-started activity, leaving the user
+    // staring at a dead app and the OS reporting "App Not Responding".
+    val crashStartUptime = SystemClock.uptimeMillis()
+    Handler(Looper.getMainLooper()).postDelayed({
+      if (SystemClock.uptimeMillis() - crashStartUptime >= 300L) {
+        exitProcess(0)
+      }
+    }, 1500L)
+  }
+
+  private fun persistCrashLog(e: Throwable) {
+    try {
+      val dir = File(context.filesDir, "crashlogs")
+      if (!dir.exists()) dir.mkdirs()
+      val sw = StringWriter()
+      e.printStackTrace(PrintWriter(sw))
+      val target = File(dir, "last_crash.txt")
+      target.writeText(
+        "---- Crash at ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())} ----\n" +
+          sw.toString(),
+      )
+    } catch (_: Throwable) {
+      // Best-effort only
+    }
   }
 }

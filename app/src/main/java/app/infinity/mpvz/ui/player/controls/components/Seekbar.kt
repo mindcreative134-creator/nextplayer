@@ -565,10 +565,10 @@ private fun SeekbarContent(
     if (waveSeekbarActive) {
       val waveTrackHeight = if (seekbarStyle == SeekbarStyle.Wavy) 5.dp else overlayTrackHeight
       WaveVisualizerOverlay(
-        palette = wavePalette!!,
+        palette = wavePalette,
         isSheetOpen = waveSheetOpen,
         volumeScale = waveVolumeScale,
-        features = waveFeatures!!,
+        features = waveFeatures,
         isPlaying = !paused && !isVisuallyInteracting,
         progressProvider = {
           if (safeDuration > 0f) (positionProvider() / safeDuration).coerceIn(0f, 1f) else 0f

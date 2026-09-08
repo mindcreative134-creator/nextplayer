@@ -227,6 +227,30 @@ internal object DebugLogReader {
     return null
   }
 
+  private fun normalizeLogLevel(
+    level: DebugLogLevel,
+    tag: String,
+    message: String,
+  ): DebugLogLevel {
+    if (level == DebugLogLevel.Error || level == DebugLogLevel.Warn) {
+      val isBenignBufferLog =
+        (tag.contains("BufferManager", ignoreCase = true) ||
+          tag.contains("BufferQueue", ignoreCase = true) ||
+          tag.contains("GraphicBuffer", ignoreCase = true) ||
+          tag.contains("SurfaceView", ignoreCase = true) ||
+          tag.contains("CodecBuffer", ignoreCase = true)) &&
+          (message.contains("release buffer", ignoreCase = true) ||
+            message.contains("buffer count", ignoreCase = true) ||
+            message.contains("cancelBuffer", ignoreCase = true) ||
+            message.contains("queueBuffer", ignoreCase = true) ||
+            message.contains("onFrameAvailable", ignoreCase = true))
+      if (isBenignBufferLog) {
+        return DebugLogLevel.Verbose
+      }
+    }
+    return level
+  }
+
   private fun buildEntry(
     timeMillis: Long,
     pid: Int?,
@@ -235,17 +259,19 @@ internal object DebugLogReader {
     tag: String,
     message: String,
     occurrence: Int,
-  ): DebugLogEntry =
-    DebugLogEntry(
-      id = buildEntryId(timeMillis, pid, tid, level, tag, message, occurrence),
+  ): DebugLogEntry {
+    val normalizedLevel = normalizeLogLevel(level, tag, message)
+    return DebugLogEntry(
+      id = buildEntryId(timeMillis, pid, tid, normalizedLevel, tag, message, occurrence),
       timeMillis = timeMillis,
       timestamp = formatDisplayTime(timeMillis),
-      level = level,
+      level = normalizedLevel,
       tag = tag,
       message = message,
       pid = pid,
       tid = tid,
     )
+  }
 
   private fun runCommand(command: List<String>): CommandResult {
     val process = ProcessBuilder(command).redirectErrorStream(true).start()

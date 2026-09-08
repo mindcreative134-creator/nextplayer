@@ -83,6 +83,7 @@ class App :
     registerActivityLifecycleCallbacks(this)
     Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
     startIdleMpvCoreReaper()
+    app.infinity.mpvz.ads.AdmobManager.initialize(this)
 
     applicationScope.launch {
       runCatching {
@@ -138,6 +139,9 @@ class App :
       getKoin().get<app.infinity.mpvz.domain.syncplay.SyncplayManager>().onAppForegrounded()
       scheduleFastThumbnailWarmupOnce()
       scheduleMetadataMaintenanceOnce()
+      if (activity !is PlayerActivity && !activity.javaClass.name.contains("CrashActivity", ignoreCase = true)) {
+        app.infinity.mpvz.ads.AdmobManager.showAppOpenAdIfAvailable(activity)
+      }
     }
   }
 

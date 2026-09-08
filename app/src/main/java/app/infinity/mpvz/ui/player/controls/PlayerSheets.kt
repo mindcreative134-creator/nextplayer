@@ -40,6 +40,7 @@ import app.infinity.mpvz.ui.player.controls.components.sheets.MoreSheet
 import app.infinity.mpvz.ui.player.controls.components.sheets.OnlineSubtitleSearchSheet
 import app.infinity.mpvz.ui.player.controls.components.sheets.PlaybackSpeedSheet
 import app.infinity.mpvz.ui.player.controls.components.sheets.PlaylistSheet
+import app.infinity.mpvz.ui.player.controls.components.sheets.ScreenshotSettingsSheet
 import app.infinity.mpvz.ui.player.controls.components.sheets.SubtitlesSheet
 import app.infinity.mpvz.ui.player.controls.components.sheets.VideoZoomSheet
 import app.infinity.mpvz.ui.player.controls.components.sheets.VideoQualitySheet
@@ -392,6 +393,7 @@ fun PlayerSheets(
         onEnterFiltersPanel = { onOpenPanel(Panels.VideoFilters) },
         onEnterLuaScriptsPanel = { onOpenPanel(Panels.LuaScripts) },
         onEnterEqualizerSheet = { onShowSheet(Sheets.Equalizer) },
+        onEnterScreenshotSettings = { onShowSheet(Sheets.ScreenshotSettings) },
         anime4KUiState = anime4KUiState,
         onAnime4KModeSelected = viewModel::selectAnime4KMode,
         filtersEnabled = MpvConfigOverride.VIDEO_FILTERS.optionNames.any { it !in configOwnedOptions },
@@ -582,6 +584,12 @@ fun PlayerSheets(
       app.infinity.mpvz.ui.player.controls.components.sheets.LyricsSheet(
         viewModel = viewModel,
         onDismiss = onDismissRequest,
+      )
+    }
+
+    Sheets.ScreenshotSettings -> {
+      ScreenshotSettingsSheet(
+        onDismissRequest = onDismissRequest,
       )
     }
   }

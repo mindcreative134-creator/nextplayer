@@ -236,12 +236,13 @@ internal fun Uri.resolveUri(
   context: Context,
   allowFdFallback: Boolean = true,
 ): String? {
-  if (scheme == null) {
+  val currentScheme = scheme?.lowercase()
+  if (currentScheme == null) {
     Log.e(TAG, "URI has null scheme: $this")
     return null
   }
 
-  return when (scheme) {
+  return when (currentScheme) {
     "file" -> path
     "content" ->
       openContentFd(context, allowFdFallback = allowFdFallback)
@@ -249,10 +250,15 @@ internal fun Uri.resolveUri(
     "data" -> "data://$schemeSpecificPart"
     "magnet", "torrent" -> toString()
     NetworkPlaybackUri.SCHEME -> toString()
-    in Utils.PROTOCOLS -> toString()
+    "http", "https", "rtmp", "rtmps", "rtsp", "rtsps", "mms", "mmsh", "udp", "tcp", "hls", "dash", "ftp", "ftps" -> toString()
+    in Utils.PROTOCOLS.map { it.lowercase() } -> toString()
     else -> {
-      Log.e(TAG, "Unsupported URI scheme: $scheme")
-      null
+      if (isHierarchical && !isRelative) {
+        toString()
+      } else {
+        Log.e(TAG, "Unsupported URI scheme: $scheme")
+        null
+      }
     }
   }
 }

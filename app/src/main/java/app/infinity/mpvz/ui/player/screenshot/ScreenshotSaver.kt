@@ -108,16 +108,31 @@ object ScreenshotSaver {
     PlaybackSession.setOptionString("screenshot-webp-lossless", if (settings.webpLossless) "yes" else "no")
   }
 
+  private suspend fun waitForFileStabilized(file: File, timeoutMs: Long = 2500L): Boolean {
+    val start = System.currentTimeMillis()
+    var lastSize = -1L
+    while (System.currentTimeMillis() - start < timeoutMs) {
+      if (file.exists() && file.length() > 0L) {
+        val currentSize = file.length()
+        if (currentSize == lastSize) {
+          return true
+        }
+        lastSize = currentSize
+      }
+      delay(50)
+    }
+    return file.exists() && file.length() > 0L
+  }
+
   private suspend fun captureNative(
     context: Context,
     settings: ScreenshotSettings,
     includeSubtitles: Boolean,
   ): File? {
-    val tempFile = File(context.cacheDir, "Mpv∞_snapshot_native.${settings.format.extension}")
+    val tempFile = File(context.cacheDir, "mpv_snapshot_native.${settings.format.extension}")
     tempFile.delete()
     PlaybackSession.command("screenshot-to-file", tempFile.absolutePath, if (includeSubtitles) "subtitles" else "video")
-    delay(250)
-    return tempFile.takeIf { it.exists() && it.length() > 0L }
+    return if (waitForFileStabilized(tempFile)) tempFile else null
   }
 
   private suspend fun captureWithAndroidFallback(
@@ -127,19 +142,18 @@ object ScreenshotSaver {
   ): File? {
     if (!settings.format.androidFallback) return null
 
-    val sourcePng = File(context.cacheDir, "Mpv∞_snapshot_fallback_source.png")
+    val sourcePng = File(context.cacheDir, "mpv_snapshot_fallback_source.png")
     sourcePng.delete()
     PlaybackSession.setOptionString("screenshot-format", "png")
     PlaybackSession.command("screenshot-to-file", sourcePng.absolutePath, if (includeSubtitles) "subtitles" else "video")
-    delay(250)
-    if (!sourcePng.exists() || sourcePng.length() == 0L) return null
+    if (!waitForFileStabilized(sourcePng)) return null
 
     if (settings.format == ScreenshotFormat.PNG) {
       return sourcePng
     }
 
     val bitmap = BitmapFactory.decodeFile(sourcePng.absolutePath) ?: return null
-    val output = File(context.cacheDir, "Mpv∞_snapshot_fallback.${settings.format.extension}")
+    val output = File(context.cacheDir, "mpv_snapshot_fallback.${settings.format.extension}")
     output.delete()
     output.outputStream().use { stream ->
       if (!bitmap.compress(settings.compressFormat(), settings.compressQuality(), stream)) {

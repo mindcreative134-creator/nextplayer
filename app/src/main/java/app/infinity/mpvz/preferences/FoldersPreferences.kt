@@ -74,4 +74,22 @@ class FoldersPreferences(
     blacklistedFolders.set(emptySet())
     blacklistedAudioFolders.set(emptySet())
   }
+
+  // Shorts manual overrides (user priority)
+  val manuallyIncludedShorts = preferenceStore.getStringSet("manually_included_shorts", emptySet())
+  val manuallyExcludedShorts = preferenceStore.getStringSet("manually_excluded_shorts", emptySet())
+
+  fun addManualShort(path: String) {
+    val included = manuallyIncludedShorts.get().toMutableSet().apply { add(path) }
+    val excluded = manuallyExcludedShorts.get().toMutableSet().apply { remove(path) }
+    manuallyIncludedShorts.set(included)
+    manuallyExcludedShorts.set(excluded)
+  }
+
+  fun removeManualShort(path: String) {
+    val included = manuallyIncludedShorts.get().toMutableSet().apply { remove(path) }
+    val excluded = manuallyExcludedShorts.get().toMutableSet().apply { add(path) }
+    manuallyIncludedShorts.set(included)
+    manuallyExcludedShorts.set(excluded)
+  }
 }

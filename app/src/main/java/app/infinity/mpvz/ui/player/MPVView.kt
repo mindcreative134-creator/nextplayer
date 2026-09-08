@@ -260,24 +260,43 @@ class MPVView(
     PlaybackSession.setOptionString("http-allow-redirect", "yes")
     PlaybackSession.setOptionString("cookies", "yes")
     PlaybackSession.setOptionString("cookies-file", AndroidCookieJar.playbackCookieFile(context).absolutePath)
-    PlaybackSession.setOptionString("cache", "auto")
+    // ── Optimized network caching & buffering ──
+    // Keep a deep cache with automatic pause on underrun so network playback remains smooth and never drops frames.
+    PlaybackSession.setOptionString("cache", "yes")
+    PlaybackSession.setOptionString("cache-secs", "300")
     PlaybackSession.setOptionString("cache-pause", "yes")
-    PlaybackSession.setOptionString("cache-pause-wait", "2")
-    PlaybackSession.setOptionString("demuxer-max-bytes", "64MiB")
+    PlaybackSession.setOptionString("cache-pause-wait", "3")
+    PlaybackSession.setOptionString("cache-pause-initial", "no")
+    PlaybackSession.setOptionString("demuxer-max-bytes", "150M")
+    PlaybackSession.setOptionString("demuxer-max-back-bytes", "50M")
+    PlaybackSession.setOptionString("demuxer-readahead-secs", "60")
+    PlaybackSession.setOptionString("demuxer-lavf-probesize", "2000000")
+    PlaybackSession.setOptionString("demuxer-lavf-analyzeduration", "2")
+    PlaybackSession.setOptionString("audio-buffer", "1")
+    PlaybackSession.setOptionString("demuxer-lavf-buffersize", "2097152")
+    PlaybackSession.setOptionString("stream-buffer-size", "8192KiB")
+    PlaybackSession.setOptionString("network-timeout", "30")
+    // Identify as a modern browser so CDNs and servers don't reject or throttle bare libmpv UA.
+    PlaybackSession.setOptionString("user-agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/125.0.0.0 Mobile Safari/537.36")
+
     // Recover boundedly from transient HTTP/TLS disconnects, including non-seekable live inputs.
     // Do not use reconnect_at_eof globally: a legitimate VOD EOF must still finish normally.
+    // Keep HTTP persistent connections alive across segments to avoid TCP/TLS handshake latency stalls.
+    // ── Reconnect aggressively on any transient network failure ──
+    // Increase retries and total delay so a brief cellular/Wi-Fi dropout doesn't abort playback.
     PlaybackSession.setOptionString(
       "demuxer-lavf-o",
-      "http_persistent=0,reconnect=1,reconnect_on_network_error=1,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=20",
+      "reconnect=1,reconnect_on_network_error=1,reconnect_streamed=1," +
+        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=25",
     )
     // demuxer-lavf-o only reaches demuxer-internal opens (HLS/DASH segments). The primary http(s)
-    // URL is opened by stream_lavf, which reads stream-lavf-o; without it a dropped connection or
-    // one failed seek-reopen permanently stalls network playback (endless buffering).
+    // URL is opened by stream_lavf, which reads stream-lavf-o. Reconnecting on 5xx recovers from server hiccups,
+    // but reconnecting on 4xx (404/403/410) hangs the demuxer in endless buffering stalls and causes ANRs.
     PlaybackSession.setOptionString(
       "stream-lavf-o",
       "reconnect=1,reconnect_on_network_error=1,reconnect_on_http_error=5xx,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=20",
+        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=25," +
+        "http_persistent=1,multiple_requests=1",
     )
     // Drop only video-output-bound late frames when rendering cannot keep up.
     // This prevents long-term jitter buildup without aggressively sacrificing smoothness.
@@ -324,6 +343,22 @@ class MPVView(
         PlaybackSession.command("script-binding", "stats/display-stats-toggle")
         PlaybackSession.command("script-binding", "stats/display-page-$it")
       }
+    }
+
+    // Force network-critical properties as runtime overrides. initOptions() sets them as pre-init
+    // options, but mpv.conf (parsed during MPVLib.init()) can silently override them. Re-applying
+    // here guarantees the hardened network config takes effect unless the user has explicitly
+    // opted into config ownership for the NETWORK_BUFFERING category.
+    if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.NETWORK_BUFFERING)) {
+      PlaybackSession.setOptionString("cache", "yes")
+      PlaybackSession.setOptionString("cache-secs", "300")
+      PlaybackSession.setOptionString("cache-pause", "yes")
+      PlaybackSession.setOptionString("cache-pause-wait", "3")
+      PlaybackSession.setOptionString("cache-pause-initial", "no")
+      PlaybackSession.setOptionString("demuxer-max-bytes", "150M")
+      PlaybackSession.setOptionString("demuxer-max-back-bytes", "50M")
+      PlaybackSession.setOptionString("demuxer-readahead-secs", "60")
+      PlaybackSession.setOptionString("network-timeout", "30")
     }
   }
 

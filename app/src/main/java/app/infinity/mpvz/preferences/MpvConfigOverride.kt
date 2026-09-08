@@ -191,10 +191,22 @@ enum class MpvConfigOverride(
         "hls-bitrate",
         "http-allow-redirect",
         "cache",
+        "cache-secs",
         "cache-pause",
         "cache-pause-wait",
+        "cache-pause-initial",
         "demuxer-max-bytes",
+        "demuxer-max-back-bytes",
+        "demuxer-readahead-secs",
+        "demuxer-lavf-probesize",
+        "demuxer-lavf-analyzeduration",
+        "audio-buffer",
+        "demuxer-lavf-buffersize",
+        "stream-buffer-size",
+        "network-timeout",
         "demuxer-lavf-o",
+        "stream-lavf-o",
+        "user-agent",
       ),
   ),
   YTDLP(
@@ -282,6 +294,19 @@ object MpvConfigControlledFeatures {
   val AUTO_CROP = setOf("video-crop")
 
   val HARDWARE_DECODER = setOf("hwdec", "gpu-api", "gpu-context")
+
+  val NETWORK_BUFFERING =
+    setOf(
+      "cache",
+      "cache-secs",
+      "cache-pause",
+      "cache-pause-wait",
+      "cache-pause-initial",
+      "demuxer-max-bytes",
+      "demuxer-max-back-bytes",
+      "demuxer-readahead-secs",
+      "network-timeout",
+    )
 }
 
 /** The ownership snapshot used by the active libmpv core. */

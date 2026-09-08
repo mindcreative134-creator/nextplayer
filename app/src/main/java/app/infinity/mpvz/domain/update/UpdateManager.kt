@@ -277,8 +277,8 @@ class UpdateManager(
   }
 
   private companion object {
-    const val STABLE_RELEASE_URL = "https://api.github.com/repos/ZHINFINITY/Mpv-infinity/releases/latest"
-    const val PREVIEW_RELEASE_URL = "https://raw.githubusercontent.com/ZHINFINITY/Mpv-infinity/main/latest.json"
+    const val STABLE_RELEASE_URL = "https://api.github.com/repos/mindcreative134-creator/nextplayer/releases/latest"
+    const val PREVIEW_RELEASE_URL = "https://raw.githubusercontent.com/mindcreative134-creator/nextplayer/main/latest.json"
     const val LEGACY_IGNORED_VERSION_KEY = "ignored_version"
     val PREVIEW_TAG_REGEX = Regex("""(?:preview-)?r(\d+)""", RegexOption.IGNORE_CASE)
     val SUPPORTED_ARCHITECTURES = setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")

@@ -1072,14 +1072,18 @@ class PlayerActivity :
         }
         BackgroundPlaybackStartResult.Blocked -> {
           isUserFinishing = true
-          finish()
+          app.infinity.mpvz.ads.AdmobManager.showInterstitialOnExit(this) {
+            finish()
+          }
         }
       }
       return
     }
 
     isUserFinishing = true
-    finish()
+    app.infinity.mpvz.ads.AdmobManager.showInterstitialOnExit(this) {
+      finish()
+    }
   }
 
   private fun setupPlayerControls() {
@@ -3530,7 +3534,7 @@ class PlayerActivity :
         // PlaybackSession opens one fresh descriptor immediately before every actual load.
         Intent.ACTION_VIEW -> intent.data?.resolveUri(this, allowFdFallback = false)
         Intent.ACTION_SEND -> parsePathFromSendIntent(intent)
-        else -> intent.getStringExtra("uri")
+        else -> intent.data?.resolveUri(this, allowFdFallback = false) ?: intent.getStringExtra("uri")
       }
 
   /**
@@ -4011,7 +4015,7 @@ class PlayerActivity :
       return
     }
 
-    if (playerPreferences.playlistMode.get() && (autoplay || repeatAll)) {
+    if (playlist.isEmpty() && playerPreferences.playlistMode.get() && (autoplay || repeatAll)) {
       val path = parsePathFromIntent(intent)
       if (path != null) {
         isAdvancingAtEof = true
@@ -5640,7 +5644,9 @@ class PlayerActivity :
       YtdlpManager.prepareForPlayback(this, item.playableUri) { line ->
         line.trim().takeIf { it.isNotEmpty() }?.let { message -> Log.d(TAG, message) }
       }
-    if (!ytdlpReady) throw IllegalStateException("yt-dlp could not be prepared for web playback")
+    if (requiresYtdlp && !ytdlpReady) {
+      Log.w(TAG, "yt-dlp could not be prepared for web playback, attempting direct stream load")
+    }
     ensureCurrentMediaRequest(requestGeneration)
     if (decoderPreferences.playbackEngine.get() == PlaybackEngineMode.NATIVE && !requiresYtdlp) {
       withContext(Dispatchers.Main) {
@@ -8021,11 +8027,11 @@ class PlayerActivity :
     private const val LOCAL_PLAYBACK_LOAD_TIMEOUT_MS = 20_000L
 
     /** Remote/proxied media gets enough time for authentication, connection and manifest resolution. */
-    private const val NETWORK_PLAYBACK_LOAD_TIMEOUT_MS = 60_000L
+    private const val NETWORK_PLAYBACK_LOAD_TIMEOUT_MS = 120_000L
 
-    private const val PLAYBACK_LOAD_RETRY_DELAY_MS = 200L
-    private const val PLAYBACK_LOAD_ERROR_SETTLE_MS = 300L
-    private const val MAX_PLAYBACK_LOAD_RETRIES = 1
+    private const val PLAYBACK_LOAD_RETRY_DELAY_MS = 1500L
+    private const val PLAYBACK_LOAD_ERROR_SETTLE_MS = 500L
+    private const val MAX_PLAYBACK_LOAD_RETRIES = 3
     private const val DEFERRED_MPV_ASSET_SYNC_DELAY_MS = 5_000L
     private const val MPV_ASSET_SYNC_PREFERENCES = "mpv_asset_sync"
     private const val USER_MPV_ASSET_SELECTION = "user_mpv_asset_selection_v1"
@@ -8036,7 +8042,7 @@ class PlayerActivity :
     /**
      * General tag for logging from PlayerActivity.
      */
-    const val TAG = "Mpv∞"
+    const val TAG = "NextPlayer"
 
     const val EXTRA_PREPARED_PLAYBACK_QUEUE = "prepared_playback_queue"
     const val EXTRA_PREPARED_PLAYBACK_TOKEN = "prepared_playback_token"

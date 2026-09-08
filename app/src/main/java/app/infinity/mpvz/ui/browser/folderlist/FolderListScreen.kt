@@ -24,6 +24,7 @@ import app.infinity.mpvz.ui.browser.fab.FabScrollHelper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -832,8 +833,13 @@ object FolderListScreen : Screen {
         },
       ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
-          if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted) {
-              if (effectiveIsSearching) {
+          Column(modifier = Modifier.fillMaxSize()) {
+            if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted && !selectionManager.isInSelectionMode && !effectiveIsSearching) {
+              app.infinity.mpvz.ads.HomeBannerAdCard()
+            }
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+              if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted) {
+                if (effectiveIsSearching) {
                 // Show search results
                 Box(modifier = Modifier.fillMaxSize()) {
                   if (isSearchLoading) {
@@ -979,6 +985,8 @@ object FolderListScreen : Screen {
             visible = isFabExpanded.value && !quickPlayFabDirect,
             onDismiss = { isFabExpanded.value = false },
           )
+            }
+          }
         }
       }
     }

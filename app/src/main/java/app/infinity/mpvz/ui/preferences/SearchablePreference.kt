@@ -1555,6 +1555,43 @@ object SearchablePreferences {
         SearchEntrySpec(R.string.pref_override_instructions_title, listOf("ai", "prompt", "override", "instructions", "custom"), R.string.pref_section_ai_title),
       )
 
+      // Screenshots
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_screenshots_section,
+          keywords =
+            listOf(
+              "screenshot",
+              "screenshots",
+              "snapshot",
+              "capture",
+              "png",
+              "jpg",
+              "jpeg",
+              "webp",
+              "quality",
+              "compression",
+              "lossless",
+              "uncompressed",
+              "subtitles",
+              "template",
+            ),
+          category = "Player",
+          screen = ScreenshotsPreferencesScreen,
+        ),
+      )
+      addSearchEntries(
+        category = "Player",
+        screen = ScreenshotsPreferencesScreen,
+        anchorItemIndex = 0,
+        SearchEntrySpec(R.string.ui_image_format, listOf("screenshot", "format", "png", "jpg", "jpeg", "webp", "snapshot", "image"), R.string.pref_screenshots_section),
+        SearchEntrySpec(R.string.ui_png_compression, listOf("png", "compression", "lossless", "uncompressed", "screenshot", "quality", "level"), R.string.pref_screenshots_section),
+        SearchEntrySpec(R.string.ui_jpeg_webp_quality, listOf("jpeg", "webp", "quality", "percent", "screenshot", "compression"), R.string.pref_screenshots_section),
+        SearchEntrySpec(R.string.ui_webp_lossless, listOf("webp", "lossless", "screenshot", "quality"), R.string.pref_screenshots_section),
+        SearchEntrySpec(R.string.ui_include_subtitles_in_screenshots, listOf("screenshot", "subtitles", "include", "snapshot"), R.string.pref_screenshots_section),
+        SearchEntrySpec(R.string.ui_filename_template, listOf("screenshot", "filename", "template", "name", "pattern"), R.string.pref_screenshots_section),
+      )
+
       // About
       add(
         SearchablePreference(
@@ -1689,6 +1726,15 @@ object SearchablePreferences {
         keywords = listOf("codec capability hardware software av1 hevc h264 vp9 audio video mime device decoder report"),
         category = "Codecs",
         screen = CodecCapabilitiesScreen,
+      ),
+      SearchablePreference(
+        titleRes = R.string.pref_screenshots_section,
+        keywords =
+          listOf(
+            "screenshot snapshot png jpg webp quality compression lossless uncompressed format template subtitles capture",
+          ),
+        category = "Player",
+        screen = ScreenshotsPreferencesScreen,
       ),
       SearchablePreference(
         titleRes = R.string.pref_about_title,

@@ -18,6 +18,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -500,71 +501,73 @@ data class VideoListScreen(
     ) { padding ->
       val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
 
-      Box(modifier = Modifier.fillMaxSize()) {
-        VideoListContent(
-          folderId = bucketId,
-          videosWithInfo = displayedVideosWithInfo,
-          isLoading = isLoading && videos.isEmpty(),
-          isRefreshing = isRefreshing,
-          recentlyPlayedFilePath = lastPlayedInFolderPath ?: recentlyPlayedFilePath,
-          videosWereDeletedOrMoved = videosWereDeletedOrMoved,
-          autoScrollToLastPlayed = autoScrollToLastPlayed,
-          onRefresh = { viewModel.refresh() },
-          selectionManager = selectionManager,
-          onVideoClick = { video ->
-            if (selectionManager.isInSelectionMode) {
-              selectionManager.toggle(video)
-            } else {
-              // Always use MediaUtils.playFile which lets PlayerActivity auto-generate playlist
-              // This avoids TransactionTooLargeException from passing large playlists
-              // PlayerActivity will auto-generate playlist from folder if playlistMode is enabled
-              MediaUtils.playFile(video, context, "video_list")
-            }
-          },
-          onVideoLongClick = { video -> selectionManager.handleLongClick(video) },
-          onWatchedChange = viewModel::setWatched,
-          onRename = { video -> swipeRenameVideo = video },
-          onDelete = { video -> swipeDeleteVideo = video },
-          isFabVisible = isFabVisible,
-          modifier = Modifier.padding(padding),
-          showFloatingBottomBar = showFloatingBottomBar,
-          mediaLayoutMode = mediaLayoutMode,
-          isAudio = isAudio,
-          musicCoverArtSize = musicCoverArtSize,
-        )
+      Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+          if (!selectionManager.isInSelectionMode && !internalIsSearching) {
+            app.infinity.mpvz.ads.HomeBannerAdCard()
+          }
+          Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            VideoListContent(
+              folderId = bucketId,
+              videosWithInfo = displayedVideosWithInfo,
+              isLoading = isLoading && videos.isEmpty(),
+              isRefreshing = isRefreshing,
+              recentlyPlayedFilePath = lastPlayedInFolderPath ?: recentlyPlayedFilePath,
+              videosWereDeletedOrMoved = videosWereDeletedOrMoved,
+              autoScrollToLastPlayed = autoScrollToLastPlayed,
+              onRefresh = { viewModel.refresh() },
+              selectionManager = selectionManager,
+              onVideoClick = { video ->
+                if (selectionManager.isInSelectionMode) {
+                  selectionManager.toggle(video)
+                } else {
+                  MediaUtils.playFile(video, context, "video_list")
+                }
+              },
+              onVideoLongClick = { video -> selectionManager.handleLongClick(video) },
+              onWatchedChange = viewModel::setWatched,
+              onRename = { video -> swipeRenameVideo = video },
+              onDelete = { video -> swipeDeleteVideo = video },
+              isFabVisible = isFabVisible,
+              modifier = Modifier.fillMaxSize(),
+              showFloatingBottomBar = showFloatingBottomBar,
+              mediaLayoutMode = mediaLayoutMode,
+              isAudio = isAudio,
+              musicCoverArtSize = musicCoverArtSize,
+            )
 
-        // Floating Material 3 Button Group overlay with animation
-        // Play Store gating is intentionally bypassed here.
-        if (showFloatingBottomBar) {
-          BrowserBottomBar(
-            isSelectionMode = selectionManager.isInSelectionMode,
-            onCopyClick = {
-              operationType.value = CopyPasteOps.OperationType.Copy
-              if (CopyPasteOps.canUseDirectFileOperations()) {
-                folderPickerOpen.value = true
-              } else {
-                treePickerLauncher.launch(null)
-              }
-            },
-            onMoveClick = {
-              operationType.value = CopyPasteOps.OperationType.Move
-              if (CopyPasteOps.canUseDirectFileOperations()) {
-                folderPickerOpen.value = true
-              } else {
-                treePickerLauncher.launch(null)
-              }
-            },
-            onDownscaleClick = { compressorDialogOpen.value = true },
-            onRenameClick = { renameDialogOpen.value = true },
-            onDeleteClick = { deleteDialogOpen.value = true },
-            onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
-            showDownscale = selectionManager.getSelectedItems().let { items -> items.isNotEmpty() && items.none { it.isAudio } },
-            showRename = selectionManager.selectedCount > 0,
-            modifier =
-              Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 0.dp),
-          )
+            if (showFloatingBottomBar) {
+              BrowserBottomBar(
+                isSelectionMode = selectionManager.isInSelectionMode,
+                onCopyClick = {
+                  operationType.value = CopyPasteOps.OperationType.Copy
+                  if (CopyPasteOps.canUseDirectFileOperations()) {
+                    folderPickerOpen.value = true
+                  } else {
+                    treePickerLauncher.launch(null)
+                  }
+                },
+                onMoveClick = {
+                  operationType.value = CopyPasteOps.OperationType.Move
+                  if (CopyPasteOps.canUseDirectFileOperations()) {
+                    folderPickerOpen.value = true
+                  } else {
+                    treePickerLauncher.launch(null)
+                  }
+                },
+                onDownscaleClick = { compressorDialogOpen.value = true },
+                onRenameClick = { renameDialogOpen.value = true },
+                onDeleteClick = { deleteDialogOpen.value = true },
+                onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
+                showDownscale = selectionManager.getSelectedItems().let { items -> items.isNotEmpty() && items.none { it.isAudio } },
+                showRename = selectionManager.selectedCount > 0,
+                modifier =
+                  Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 0.dp),
+              )
+            }
+          }
         }
       }
 

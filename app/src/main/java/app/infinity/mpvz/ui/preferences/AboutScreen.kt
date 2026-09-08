@@ -97,10 +97,6 @@ object AboutScreen : Screen {
         ?.let { value -> if (BuildConfig.IS_PREVIEW_BUILD) value else value.substringBefore('-') }
         ?: BuildConfig.VERSION_NAME
     val buildType = BuildConfig.BUILD_TYPE
-    val githubRepoUrl = stringResource(R.string.github_repo_url)
-    val koFiUrl = "https://ko-fi.com/ZHINFINITY"
-    val paypalUrl = "https://paypal.me/InfinityxEternity"
-    val upiId = "zhjjk001-1@oksbi"
     val settingsScrollState = rememberScrollState()
     val settingsHighlight =
       rememberSettingsSearchHighlight(AboutScreen, settingsScrollState, MaterialTheme.colorScheme.primary)
@@ -230,83 +226,13 @@ object AboutScreen : Screen {
 
               Spacer(modifier = Modifier.height(20.dp))
 
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-              ) {
-                val btnContainer = cs.primary
-                val btnContent = cs.onPrimary
-                Button(
-                  onClick = { backstack.add(LibrariesScreen) },
-                  modifier =
-                    Modifier
-                      .weight(1f)
-                      .height(56.dp),
-                  shape = RoundedCornerShape(16.dp),
-                  colors =
-                    ButtonDefaults.buttonColors(
-                      containerColor = btnContainer,
-                      contentColor = btnContent,
-                    ),
-                ) {
-                  Icon(
-                    painter = painterResource(id = R.drawable.ic_library_cube),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
-                  Text(
-                    text = stringResource(id = R.string.pref_about_oss_libraries),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                  )
-                }
-
-                Button(
-                  onClick = {
-                    context.startActivity(
-                      Intent(
-                        Intent.ACTION_VIEW,
-                        githubRepoUrl.toUri(),
-                      ),
-                    )
-                  },
-                  modifier =
-                    Modifier
-                      .weight(1f)
-                      .height(56.dp),
-                  shape = RoundedCornerShape(16.dp),
-                  colors =
-                    ButtonDefaults.buttonColors(
-                      containerColor = btnContainer,
-                      contentColor = btnContent,
-                    ),
-                ) {
-                  Icon(
-                    painter = painterResource(id = R.drawable.ic_github),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
-                  Text(
-                    text =
-                      androidx.compose.ui.res
-                        .stringResource(app.infinity.mpvz.R.string.ui_github),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                  )
-                }
-              }
-
-              Spacer(modifier = Modifier.height(20.dp))
-
               Column(
                 modifier =
                   Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .clickable {
-                      SafeClipboard.copyPlainText(context, "Mpv∞_device_info", collectDeviceInfo())
+                      SafeClipboard.copyPlainText(context, "device_info", collectDeviceInfo())
                     },
               ) {
                 Row(
@@ -342,149 +268,23 @@ object AboutScreen : Screen {
           }
         }
 
-        Spacer(Modifier.height(8.dp))
-
-        // Support / Donation Section
-        PreferenceSectionHeader(title = stringResource(R.string.pref_section_support))
-        PreferenceCard {
-          Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              Icon(
-                imageVector = Icons.RoundedFilled.MonetizationOn,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = cs.error,
-              )
-              Spacer(Modifier.width(10.dp))
-              Text(
-                text =
-                  androidx.compose.ui.res
-                    .stringResource(app.infinity.mpvz.R.string.ui_buy_me_a_coffee),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = cs.onSurface,
-              )
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-              text =
-                androidx.compose.ui.res.stringResource(
-                  app.infinity.mpvz.R.string.ui_if_you_enjoy_mpvrx_consider_supporting_its_development_every_bit,
-                ),
-              style = MaterialTheme.typography.bodyMedium,
-              color = cs.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(14.dp))
-            Surface(
-              shape = RoundedCornerShape(12.dp),
-              color = cs.primaryContainer.copy(alpha = 0.4f),
-              modifier = Modifier.fillMaxWidth(),
-            ) {
-              Row(
-                modifier =
-                  Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                      SafeClipboard.copyPlainText(
-                        context = context,
-                        label = "Mpv∞_support_link",
-                        text = "$koFiUrl\n$paypalUrl\n$upiId",
-                        showToast = false,
-                      )
-                      Toast
-                        .makeText(
-                          context,
-                          context.getString(app.infinity.mpvz.R.string.ui_support_link_copied),
-                          Toast.LENGTH_SHORT,
-                        ).show()
-                    }.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-              ) {
-                Column(modifier = Modifier.weight(1f)) {
-                  Text(
-                    text =
-                      androidx.compose.ui.res
-                        .stringResource(app.infinity.mpvz.R.string.ui_support_link),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = cs.outline,
-                  )
-                  Spacer(Modifier.height(2.dp))
-                  Text(
-                    text =
-                      androidx.compose.ui.res.stringResource(
-                        app.infinity.mpvz.R.string.pref_about_donate_kofi_url,
-                      ),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = cs.onSurface,
-                  )
-                }
-                Icon(
-                  imageVector = Icons.RoundedFilled.ContentCopy,
-                  contentDescription =
-                    androidx.compose.ui.res.stringResource(
-                      app.infinity.mpvz.R.string.ui_copy_upi_id,
-                    ),
-                  modifier = Modifier.size(20.dp),
-                  tint = cs.primary,
-                )
-              }
-            }
-            Spacer(Modifier.height(12.dp))
+        if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+          Spacer(Modifier.height(8.dp))
+          PreferenceSectionHeader(title = stringResource(R.string.pref_section_updates))
+          PreferenceCard {
             Button(
               onClick = {
-                try {
-                  val supportIntent =
-                    Intent(
-                      Intent.ACTION_VIEW,
-                      koFiUrl.toUri(),
-                    )
-                  context.startActivity(supportIntent)
-                } catch (_: Exception) {
-                  Toast
-                    .makeText(
-                      context,
-                      "Unable to open support link",
-                      Toast.LENGTH_SHORT,
-                    ).show()
-                }
+                context.startActivity(
+                  Intent(Intent.ACTION_VIEW, "https://github.com/mindcreative134-creator/nextplayer/releases".toUri()),
+                )
               },
-              modifier = Modifier.fillMaxWidth().height(50.dp),
+              modifier = Modifier.fillMaxWidth().padding(16.dp).height(50.dp),
               shape = RoundedCornerShape(12.dp),
-              colors =
-                ButtonDefaults.buttonColors(
-                  containerColor = cs.error,
-                  contentColor = cs.onError,
-                ),
-              elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
-              Icon(Icons.RoundedFilled.MonetizationOn, null, modifier = Modifier.size(18.dp))
+              Icon(Icons.RoundedFilled.Update, null, modifier = Modifier.size(18.dp))
               Spacer(Modifier.width(8.dp))
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.infinity.mpvz.R.string.pref_about_donate_kofi),
-                fontWeight = FontWeight.SemiBold,
-              )
+              Text(stringResource(R.string.ui_check_for_updates_now), fontWeight = FontWeight.SemiBold)
             }
-          }
-        }
-
-        Spacer(Modifier.height(8.dp))
-        PreferenceSectionHeader(title = stringResource(R.string.pref_section_updates))
-        PreferenceCard {
-          Button(
-            onClick = {
-              context.startActivity(
-                Intent(Intent.ACTION_VIEW, "https://github.com/ZHINFINITY/Mpv-infinity/releases".toUri()),
-              )
-            },
-            modifier = Modifier.fillMaxWidth().padding(16.dp).height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-          ) {
-            Icon(Icons.RoundedFilled.Update, null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.ui_check_for_updates_now), fontWeight = FontWeight.SemiBold)
           }
         }
 
@@ -1024,7 +824,7 @@ private val OPEN_SOURCE_LIBRARIES =
       artifact = "mpvlib.aar / mpvlib-no-vulkun.aar / mpvlib-fongmi.aar",
       descriptionRes = R.string.oss_mpvlib_android_description,
       license = "MIT",
-      url = "https://github.com/ZHINFINITY/Mpv-infinity",
+      url = "https://github.com/mindcreative134-creator/nextplayer",
     ),
     OpenSourceLibrary(
       name = "QuickJS-NG",

@@ -39,16 +39,14 @@ plugins {
 android {
   namespace = "app.infinity.mpvz"
   compileSdk = 37
-  ndkVersion = "27.3.13750724"
+  ndkVersion = "28.2.13676358"
 
   defaultConfig {
-    applicationId = "app.infinity.mpvz"
+    applicationId = "com.nextplayer.pro"
     minSdk = 26
     targetSdk = 36
-    // Stable occupies the top of its version band. Preview uses the next band's commit-count
-    // offset, so Stable -> Preview -> newer Preview -> next Stable is always an Android upgrade.
-    versionCode = stableVersionCode
-    versionName = "2.5.0"
+    versionCode = 549
+    versionName = "1.1.8"
 
     vectorDrawables {
       useSupportLibrary = true
@@ -83,6 +81,16 @@ android {
       buildConfigField("boolean", "MPV_SUPPORTS_MEDIACODEC_VULKAN", "false")
     }
 
+    create("playstore") {
+      dimension = "distribution"
+      buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "false")
+      buildConfigField("String", "UPDATE_APK_VARIANT", "\"playstore\"")
+      buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "true")
+      buildConfigField("boolean", "MPV_SUPPORTS_VULKAN", "true")
+      buildConfigField("boolean", "MPV_SUPPORTS_MEDIACODEC_VULKAN", "false")
+      versionNameSuffix = "-playstore"
+    }
+
     create("noVulkan") {
       dimension = "distribution"
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
@@ -109,10 +117,10 @@ android {
 
   splits {
     abi {
-      isEnable = true
+      isEnable = project.findProperty("splitApks") == "true"
       reset()
       include(*activeAbis.toTypedArray())
-      isUniversalApk = activeAbis.size > 1
+      isUniversalApk = true
     }
   }
 
@@ -126,7 +134,7 @@ android {
         "proguard-rules.pro",
       )
       ndk {
-        debugSymbolLevel = "none"
+        debugSymbolLevel = "SYMBOL_TABLE"
       }
     }
 
@@ -141,7 +149,7 @@ android {
       buildConfigField("boolean", "IS_PREVIEW_BUILD", "false")
       applicationIdSuffix = ".debug"
       versionNameSuffix = "-${getCommitCount()}"
-      resValue("string", "app_name", "Mpv∞-Debug")
+      resValue("string", "app_name", "NextPlayer-Debug")
     }
   }
 
@@ -196,9 +204,19 @@ androidComponents {
   }
 
   onVariants { variant ->
+    val isPlaystore =
+      variant.productFlavors.any { (dimension, flavor) ->
+        dimension == "distribution" && flavor == "playstore"
+      }
+
     val isUniversalOnly =
       variant.productFlavors.any { (dimension, flavor) ->
         dimension == "distribution" && flavor in universalOnlyDistributions
+      }
+
+    val hasUniversal =
+      variant.outputs.any { output ->
+        output.filters.none { it.filterType == FilterConfiguration.FilterType.ABI }
       }
 
     variant.outputs.forEach { output ->
@@ -207,13 +225,18 @@ androidComponents {
           .find { it.filterType == FilterConfiguration.FilterType.ABI }
           ?.identifier
 
-      if (isUniversalOnly && abi != null) {
+      if (isUniversalOnly && abi != null && hasUniversal) {
         output.enabled.set(false)
       }
 
       val channelVersionCode =
-        if (variant.buildType == "preview") previewVersionCode else (output.versionCode.orNull ?: stableVersionCode)
-      output.versionCode.set(channelVersionCode * 10 + (abiCodes[abi] ?: 0))
+        if (variant.buildType == "preview") previewVersionCode else (output.versionCode.orNull ?: 548)
+
+      if (isPlaystore || abi == null) {
+        output.versionCode.set(channelVersionCode)
+      } else {
+        output.versionCode.set(channelVersionCode * 10 + (abiCodes[abi] ?: 0))
+      }
     }
   }
 }
@@ -244,6 +267,7 @@ dependencies {
   implementation(libs.androidx.ui.graphics)
   implementation(libs.androidx.material3.android)
   implementation(libs.google.material)
+  implementation(libs.play.services.ads)
   implementation(libs.androidx.compose.material)
   implementation(libs.androidx.ui.tooling.preview)
   debugImplementation(libs.androidx.ui.tooling)
@@ -299,6 +323,7 @@ dependencies {
   implementation(libs.google.cast.framework)
 
   "standardImplementation"(files("libs/mpvlib.aar"))
+  "playstoreImplementation"(files("libs/mpvlib.aar"))
   "noVulkanImplementation"(files("libs/mpvlib-no-vulkun.aar"))
   "fongmiImplementation"(files("libs/mpvlib-fongmi.aar"))
 
@@ -350,3 +375,4 @@ fun runCommand(command: String): String? =
   } catch (e: Exception) {
     null
   }
+

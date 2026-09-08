@@ -26,7 +26,10 @@ object NetworkUserAgent {
     customUserAgent?.trim()?.takeIf(String::isNotEmpty)?.let { return it }
     cachedWebViewUserAgent?.let { return it }
 
-    if (Looper.myLooper() == Looper.getMainLooper()) {
+    // WebSettings.getDefaultUserAgent() can synchronously initialize the WebView, which is slow
+    // enough to trigger an "App Not Responding" dialog if called on the main thread. Only use it
+    // off the main thread; otherwise fall straight back to the lightweight app identity.
+    if (Looper.myLooper() != Looper.getMainLooper()) {
       runCatching { WebSettings.getDefaultUserAgent(context.applicationContext) }
         .getOrNull()
         ?.takeIf(String::isNotBlank)
@@ -36,6 +39,6 @@ object NetworkUserAgent {
         }
     }
 
-    return "Mpv∞/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; ${Build.MANUFACTURER} ${Build.MODEL})"
+    return "NextPlayer/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; ${Build.MANUFACTURER} ${Build.MODEL})"
   }
 }

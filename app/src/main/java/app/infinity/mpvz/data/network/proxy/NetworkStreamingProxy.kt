@@ -53,7 +53,10 @@ class NetworkStreamingProxy private constructor() :
   companion object {
     private const val TAG = "NetworkStreamingProxy"
     private const val TOKEN_BYTES = 24
-    private const val PROXY_OPERATION_TIMEOUT_SECONDS = 75L
+    // Keep upstream operations bound so a slow server can't exhaust NanoHTTPD's server
+    // thread pool and stall every subsequent segment/range request (visible as "link not
+    // loaded"). mpv's reconnect logic recovers from an upstream timeout.
+    private const val PROXY_OPERATION_TIMEOUT_SECONDS = 30L
 
     @Volatile
     private var instance: NetworkStreamingProxy? = null

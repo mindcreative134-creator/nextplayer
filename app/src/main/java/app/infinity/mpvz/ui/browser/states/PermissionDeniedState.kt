@@ -94,17 +94,7 @@ import app.infinity.mpvz.utils.permission.PermissionUtils
 import org.koin.compose.koinInject
 
 private fun checkFilePermission(context: Context): Boolean {
-  val isPlayStoreBuild = BuildConfig.SCOPED_STORAGE_ONLY
-  return if (!isPlayStoreBuild && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-    Environment.isExternalStorageManager()
-  } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
-    true
-  } else {
-    ContextCompat.checkSelfPermission(
-      context,
-      PermissionUtils.getStoragePermission(),
-    ) == PackageManager.PERMISSION_GRANTED
-  }
+  return PermissionUtils.hasStoragePermission(context)
 }
 
 private fun checkNotificationPermission(context: Context): Boolean {
@@ -329,41 +319,79 @@ fun PermissionDeniedState(
                 Spacer(modifier = Modifier.height(28.dp))
 
                 when (step) {
-                  OnboardingStep.STORAGE ->
-                    PermissionSectionCard(
-                      title = stringResource(R.string.ui_file_permission_title),
-                      description = if (isPlayStoreBuild) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                          stringResource(R.string.ui_file_permission_desc_playstore_tiramisu)
-                        } else {
-                          stringResource(R.string.ui_file_permission_desc_playstore)
-                        }
-                      } else {
-                        stringResource(R.string.ui_file_permission_desc_all_files)
-                      },
-                      isGranted = isFileGranted,
-                      icon = Icons.RoundedFilled.Folder,
-                      onClick = {
-                        if (!isFileGranted) {
-                          if (isPlayStoreBuild) {
-                            onRequestPermission()
+                  OnboardingStep.STORAGE -> {
+                    var storageAttemptCount by rememberSaveable { mutableIntStateOf(0) }
+                    Column(
+                      horizontalAlignment = Alignment.CenterHorizontally,
+                      modifier = Modifier.fillMaxWidth(),
+                    ) {
+                      PermissionSectionCard(
+                        title = stringResource(R.string.ui_file_permission_title),
+                        description = if (isPlayStoreBuild) {
+                          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            stringResource(R.string.ui_file_permission_desc_playstore_tiramisu)
                           } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                              try {
-                                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                                intent.data = Uri.parse("package:${context.packageName}")
-                                context.startActivity(intent)
-                              } catch (_: Exception) {
-                                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                                context.startActivity(intent)
-                              }
+                            stringResource(R.string.ui_file_permission_desc_playstore)
+                          }
+                        } else {
+                          stringResource(R.string.ui_file_permission_desc_all_files)
+                        },
+                        isGranted = isFileGranted,
+                        icon = Icons.RoundedFilled.Folder,
+                        onClick = {
+                          if (!isFileGranted) {
+                            val activity = context as? Activity
+                            val shouldShowRationale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                              activity?.shouldShowRequestPermissionRationale(android.Manifest.permission.READ_MEDIA_VIDEO) == true
                             } else {
-                              onRequestPermission()
+                              activity?.shouldShowRequestPermissionRationale(android.Manifest.permission.READ_EXTERNAL_STORAGE) == true
+                            }
+                            if (storageAttemptCount > 0 && !shouldShowRationale) {
+                              PermissionUtils.openAppSettings(context)
+                            } else {
+                              storageAttemptCount++
+                              if (isPlayStoreBuild) {
+                                onRequestPermission()
+                              } else {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                  try {
+                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                    intent.data = Uri.parse("package:${context.packageName}")
+                                    context.startActivity(intent)
+                                  } catch (_: Exception) {
+                                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                                    context.startActivity(intent)
+                                  }
+                                } else {
+                                  onRequestPermission()
+                                }
+                              }
                             }
                           }
+                        },
+                      )
+
+                      if (!isFileGranted) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        TextButton(
+                          onClick = { PermissionUtils.openAppSettings(context) },
+                        ) {
+                          Icon(
+                            imageVector = Icons.RoundedFilled.Settings,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                          )
+                          Spacer(modifier = Modifier.width(6.dp))
+                          Text(
+                            text = "Permission not showing? Open App Settings",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                          )
                         }
-                      },
-                    )
+                      }
+                    }
+                  }
 
                   OnboardingStep.NOTIFICATIONS ->
                     PermissionSectionCard(
@@ -554,7 +582,7 @@ fun PermissionDeniedState(
   // Explanation Dialog
   if (showExplanationDialog) {
     val uriHandler = LocalUriHandler.current
-    val githubUrl = "https://github.com/ZHINFINITY/Mpv-infinity"
+    val githubUrl = "https://github.com/mindcreative134-creator/nextplayer"
 
     AlertDialog(
       onDismissRequest = { showExplanationDialog = false },
@@ -893,6 +921,8 @@ fun StoragePermissionPrompt(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
       Spacer(modifier = Modifier.height(18.dp))
+      var promptAttemptCount by rememberSaveable { mutableIntStateOf(0) }
+
       Button(
         onClick = {
           if (isFileGranted) return@Button
@@ -906,7 +936,18 @@ fun StoragePermissionPrompt(
               context.startActivity(intent)
             }
           } else {
-            onRequestPermission()
+            val activity = context as? Activity
+            val shouldShowRationale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+              activity?.shouldShowRequestPermissionRationale(android.Manifest.permission.READ_MEDIA_VIDEO) == true
+            } else {
+              activity?.shouldShowRequestPermissionRationale(android.Manifest.permission.READ_EXTERNAL_STORAGE) == true
+            }
+            if (promptAttemptCount > 0 && !shouldShowRationale) {
+              PermissionUtils.openAppSettings(context)
+            } else {
+              promptAttemptCount++
+              onRequestPermission()
+            }
           }
         },
         shape = AppShapeScale.large,
@@ -916,6 +957,25 @@ fun StoragePermissionPrompt(
           text = stringResource(R.string.storage_permission_grant),
           style = MaterialTheme.typography.titleSmall,
           fontWeight = FontWeight.Bold,
+        )
+      }
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      TextButton(
+        onClick = { PermissionUtils.openAppSettings(context) },
+      ) {
+        Icon(
+          imageVector = Icons.RoundedFilled.Settings,
+          contentDescription = null,
+          modifier = Modifier.size(16.dp),
+          tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+          text = "Open App Settings",
+          style = MaterialTheme.typography.labelMedium,
+          color = MaterialTheme.colorScheme.primary,
         )
       }
     }
