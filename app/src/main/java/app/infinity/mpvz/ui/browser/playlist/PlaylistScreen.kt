@@ -303,26 +303,36 @@ object PlaylistScreen : Screen {
           }
         }
       } else {
-        PlaylistListContent(
-          playlistsWithCount = filteredPlaylists,
-          listState = listState,
-          gridState = gridState,
-          isRefreshing = isRefreshing,
-          onRefresh = { viewModel.refresh() },
-          selectionManager = selectionManager,
-          onPlaylistClick = { playlistWithCount ->
-            if (selectionManager.isInSelectionMode) {
-              selectionManager.toggle(playlistWithCount)
-            } else {
-              backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
-            }
-          },
-          onPlaylistLongClick = { playlistWithCount ->
-            selectionManager.handleLongClick(playlistWithCount)
-          },
-          modifier = Modifier.padding(paddingValues),
-          isInSelectionMode = selectionManager.isInSelectionMode,
-        )
+        Column(
+          modifier =
+            Modifier
+              .fillMaxSize()
+              .padding(paddingValues),
+        ) {
+          if (!selectionManager.isInSelectionMode && !isSearching) {
+            app.infinity.mpvz.ads.HomeBannerAdCard()
+          }
+          PlaylistListContent(
+            playlistsWithCount = filteredPlaylists,
+            listState = listState,
+            gridState = gridState,
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            selectionManager = selectionManager,
+            onPlaylistClick = { playlistWithCount ->
+              if (selectionManager.isInSelectionMode) {
+                selectionManager.toggle(playlistWithCount)
+              } else {
+                backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
+              }
+            },
+            onPlaylistLongClick = { playlistWithCount ->
+              selectionManager.handleLongClick(playlistWithCount)
+            },
+            modifier = Modifier.weight(1f),
+            isInSelectionMode = selectionManager.isInSelectionMode,
+          )
+        }
       }
     }
 

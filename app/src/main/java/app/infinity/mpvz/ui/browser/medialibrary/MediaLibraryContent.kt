@@ -642,6 +642,10 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
           }
         }
 
+        if (!selectionManager.isInSelectionMode && !isSearching) {
+          app.infinity.mpvz.ads.HomeBannerAdCard()
+        }
+
         Box(modifier = Modifier.weight(1f)) {
           if (isSearching && filteredVideosWithInfo.isEmpty() && searchQuery.isNotBlank()) {
             Box(

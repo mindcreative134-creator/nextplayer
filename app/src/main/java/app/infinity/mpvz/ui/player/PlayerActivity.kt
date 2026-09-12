@@ -866,9 +866,9 @@ class PlayerActivity :
             PlaybackSession.state.value.phase == PlaybackPhase.BACKGROUND
           if (currentUri != null && (isReady || sessionReady || outgoingEngine == PlaybackEngineMode.NATIVE)) {
             if (useNative) {
-              // Keep MPV visible while Media3 opens the network source. Hiding the outgoing
-              // surface before Media3 renders a frame produces the black/stuck handoff seen on
-              // HDR WebDAV playback.
+              // Keep MPV visible while Media3 opens and buffers the source. Hiding the outgoing
+              // surface before Media3 renders a frame produces a black screen while audio starts.
+              binding.media3Player.visibility = View.VISIBLE
               binding.media3Player.alpha = 0f
               if (outgoingEngine == PlaybackEngineMode.MPV) {
                 PlaybackSession.setPropertyBoolean("pause", true)
@@ -894,8 +894,11 @@ class PlayerActivity :
               // current cue is unchanged, so no new translation callback will fire; explicitly
               // apply the persisted state to Native's SubtitleView now.
               viewModel.syncNativeSubtitleVisibility()
-              binding.media3Player.alpha = 1f
-              binding.player.visibility = View.GONE
+              // Keep MPV surface visible and frozen on the last frame while Media3 prepares.
+              // Mute Native audio temporarily until the first video frame renders so audio does not
+              // play ahead of the video display.
+              nativeEngine.currentPlayer.volume = 0f
+              binding.player.visibility = View.VISIBLE
               nativeEngine.play(
                 nativeUri,
                 outgoingPositionMs,
@@ -915,6 +918,7 @@ class PlayerActivity :
                 } == true
                 if (!rendered || !ownsPlaybackSession()) {
                   nativeEngine.stop()
+                  nativeEngine.currentPlayer.volume = 1f
                   if (ownsPlaybackSession()) {
                     activeEngineMode = PlaybackEngineMode.MPV
                     viewModel.setNativeEngineActive(false)
@@ -926,20 +930,25 @@ class PlayerActivity :
                     PlaybackSession.setPropertyBoolean("pause", !outgoingPlaying)
                     if (outgoingPlaying) PlaybackSession.command("play")
                     binding.media3Player.alpha = 0f
+                    binding.media3Player.visibility = View.GONE
                     binding.player.visibility = View.VISIBLE
                   }
                   return@launch
                 }
+                // First frame has rendered: restore Native audio volume, reveal Media3, and hide MPV surface
+                nativeEngine.currentPlayer.volume = 1f
                 binding.media3Player.alpha = 1f
                 binding.player.visibility = View.GONE
               }
             } else if (mpvInitialized) {
               activeEngineMode = PlaybackEngineMode.MPV
               viewModel.setNativeEngineActive(false)
-              PlaybackSession.setPropertyBoolean("mute", false)
+              PlaybackSession.setPropertyBoolean("mute", true)
+              // Keep Media3's last rendered frame visible while MPV is preparing to eliminate black screens
+              nativeEngine.setPlaying(false)
+              binding.media3Player.visibility = View.VISIBLE
               binding.media3Player.alpha = 1f
-              binding.player.visibility = View.INVISIBLE
-              nativeEngine.stop()
+              binding.player.visibility = View.VISIBLE
               // This is a renderer handoff, not a user-selected queue change. Avoid the normal
               // loader's outgoing-item stop/report path, which can race the new MPV load.
               val queueItem = PlaybackSession.queue.value.currentItem
@@ -988,16 +997,16 @@ class PlayerActivity :
                   true
                 } == true
                 if (ready && ownsPlaybackSession() && activeEngineMode == PlaybackEngineMode.MPV) {
-                  binding.media3Player.alpha = 0f
                   binding.player.visibility = View.VISIBLE
-                }
-                // Apply the captured state once after MPV is ready. Repeated time-pos writes
-                // during 4K/HDR handoff force repeated demuxer seeks and cause audible stalls.
-                delay(250L)
-                if (ownsPlaybackSession() && mpvInitialized && activeEngineMode == PlaybackEngineMode.MPV) {
+                  binding.media3Player.alpha = 0f
+                  binding.media3Player.visibility = View.GONE
+                  nativeEngine.stop()
                   PlaybackSession.setPropertyDouble("time-pos", outgoingPositionMs / 1000.0)
                   PlaybackSession.setPropertyBoolean("pause", !outgoingPlaying)
+                  PlaybackSession.setPropertyBoolean("mute", false)
                   if (outgoingPlaying) PlaybackSession.command("play")
+                } else {
+                  PlaybackSession.setPropertyBoolean("mute", false)
                 }
               }
             }
@@ -6406,6 +6415,7 @@ class PlayerActivity :
         viewModel.setNativeEngineActive(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         binding.player.visibility = View.GONE
+        binding.media3Player.visibility = View.VISIBLE
         binding.media3Player.alpha = 1f
         val nativePlayableUri = PlaybackSession.resolvePlayableUriForNative(nativeItem)
         nativeEngine.play(

@@ -61,7 +61,7 @@
         <!-- Google AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-8615789090438802~6576899360" />
+            android:value="ca-app-pub-9543073887536718~8714519957" />
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"

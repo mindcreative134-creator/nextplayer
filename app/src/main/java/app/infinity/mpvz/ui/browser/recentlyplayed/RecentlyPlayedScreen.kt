@@ -455,6 +455,10 @@ object RecentlyPlayedScreen : Screen {
           }
         }
 
+        if (!selectionManager.isInSelectionMode) {
+          app.infinity.mpvz.ads.HomeBannerAdCard()
+        }
+
         Box(
           modifier =
             Modifier

@@ -62,6 +62,7 @@ object AdmobManager {
   fun initialize(context: Context) {
     if (isInitialized.compareAndSet(false, true)) {
       appLaunchTimestamp = SystemClock.elapsedRealtime()
+      lastInterstitialShowTime = SystemClock.elapsedRealtime()
       try {
         if (AdConfig.testDeviceHashedIds.isNotEmpty()) {
           val reqConfig = RequestConfiguration.Builder()
@@ -303,9 +304,9 @@ object AdmobManager {
     val now = SystemClock.elapsedRealtime()
     val timeSinceLast = now - lastInterstitialShowTime
 
-    // Frequency capping: show at most once every 4 minutes, and only every N exits
+    // Frequency capping: show at most once every 4 minutes, and only after at least N exits
     val isCooldownElapsed = timeSinceLast >= AdConfig.INTERSTITIAL_COOLDOWN_MS
-    val isFrequencyMet = videoExitsCounter >= AdConfig.INTERSTITIAL_MIN_EXITS_BEFORE_SHOW || isCooldownElapsed
+    val isFrequencyMet = videoExitsCounter >= AdConfig.INTERSTITIAL_MIN_EXITS_BEFORE_SHOW && isCooldownElapsed
 
     val ad = interstitialAd
     if (ad != null && isFrequencyMet) {

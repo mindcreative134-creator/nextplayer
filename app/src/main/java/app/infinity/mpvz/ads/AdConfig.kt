@@ -8,25 +8,29 @@ object AdConfig {
   // ─────────────────────────────────────────────────────────────────────────
   // AdMob App ID — must match AndroidManifest meta-data value
   // ─────────────────────────────────────────────────────────────────────────
-  const val APP_ID = "ca-app-pub-8615789090438802~6576899360"
+  const val APP_ID = "ca-app-pub-9543073887536718~8714519957"
 
   // ─────────────────────────────────────────────────────────────────────────
   // Live Ad Unit IDs (your real production units from AdMob Console)
   // ─────────────────────────────────────────────────────────────────────────
-  const val LIVE_APP_OPEN_AD_ID     = "ca-app-pub-8615789090438802/5156746147"
-  const val LIVE_BANNER_AD_ID       = "ca-app-pub-8615789090438802/1492093645"
-  const val LIVE_INTERSTITIAL_AD_ID = "ca-app-pub-8615789090438802/3903868099"
-  const val LIVE_NATIVE_AD_ID       = "ca-app-pub-8615789090438802/1712158259"
+  const val LIVE_APP_OPEN_AD_ID              = "ca-app-pub-9543073887536718/3216002450"
+  const val LIVE_BANNER_AD_ID                = "ca-app-pub-9543073887536718/9781410809"
+  const val LIVE_INTERSTITIAL_AD_ID          = "ca-app-pub-9543073887536718/6955936919"
+  const val LIVE_NATIVE_AD_ID                = "ca-app-pub-9543073887536718/1541506865"
+  const val LIVE_REWARDED_AD_ID              = "ca-app-pub-9543073887536718/8742440115"
+  const val LIVE_REWARDED_INTERSTITIAL_AD_ID = "ca-app-pub-9543073887536718/2368603457"
 
   // ─────────────────────────────────────────────────────────────────────────
   // Google Official Test Ad Unit IDs — 100% fill rate, guaranteed
   // Use these during development/debugging so you see real ad UI without
   // risking invalid traffic on your live account.
   // ─────────────────────────────────────────────────────────────────────────
-  const val TEST_APP_OPEN_AD_ID     = "ca-app-pub-3940256099942544/9257395921"
-  const val TEST_BANNER_AD_ID       = "ca-app-pub-3940256099942544/6300978111"
-  const val TEST_INTERSTITIAL_AD_ID = "ca-app-pub-3940256099942544/1033173712"
-  const val TEST_NATIVE_AD_ID       = "ca-app-pub-3940256099942544/2247696110"
+  const val TEST_APP_OPEN_AD_ID              = "ca-app-pub-3940256099942544/9257395921"
+  const val TEST_BANNER_AD_ID                = "ca-app-pub-3940256099942544/6300978111"
+  const val TEST_INTERSTITIAL_AD_ID          = "ca-app-pub-3940256099942544/1033173712"
+  const val TEST_NATIVE_AD_ID                = "ca-app-pub-3940256099942544/2247696110"
+  const val TEST_REWARDED_AD_ID              = "ca-app-pub-3940256099942544/5224354917"
+  const val TEST_REWARDED_INTERSTITIAL_AD_ID = "ca-app-pub-3940256099942544/5354046379"
 
   // ─────────────────────────────────────────────────────────────────────────
   // TOGGLE: true = live revenue, false = test ads (safe for debugging)
@@ -56,6 +60,12 @@ object AdConfig {
 
   val nativeAdUnitId: String
     get() = if (useLiveAds) LIVE_NATIVE_AD_ID else TEST_NATIVE_AD_ID
+
+  val rewardedAdUnitId: String
+    get() = if (useLiveAds) LIVE_REWARDED_AD_ID else TEST_REWARDED_AD_ID
+
+  val rewardedInterstitialAdUnitId: String
+    get() = if (useLiveAds) LIVE_REWARDED_INTERSTITIAL_AD_ID else TEST_REWARDED_INTERSTITIAL_AD_ID
 
   // ─────────────────────────────────────────────────────────────────────────
   // Smart Frequency Capping — prevents irritation & invalid traffic penalties

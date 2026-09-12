@@ -81,7 +81,10 @@ fun RealAdmobBanner(
       modifier = Modifier
         .fillMaxWidth()
         .height(50.dp),
-      factory = { adView },
+      factory = {
+        (adView.parent as? ViewGroup)?.removeView(adView)
+        adView
+      },
     )
   }
 }
