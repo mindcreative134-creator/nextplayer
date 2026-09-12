@@ -537,6 +537,8 @@ class PlayerActivity :
   private var playbackLoadWatchdogJob: Job? = null
   @Volatile private var pendingMediaLoadRecovery: PendingMediaLoadRecovery? = null
   @Volatile private var mediaRequestGeneration = 0L
+  /** Re-select MPV's audio track after a Native-to-MPV handoff and saved-state restoration. */
+  @Volatile private var forceMpvAudioTrackAutoOnNextLoad = false
   private var eofAdvanceJob: Job? = null
 
   @Volatile private var isAdvancingAtEof = false
@@ -943,6 +945,9 @@ class PlayerActivity :
             } else if (mpvInitialized) {
               activeEngineMode = PlaybackEngineMode.MPV
               viewModel.setNativeEngineActive(false)
+              // Native and MPV use different audio-track identifiers. Flag the next MPV load to
+              // auto-select its audio track so a saved Native-only ID cannot overwrite it.
+              forceMpvAudioTrackAutoOnNextLoad = true
               PlaybackSession.setPropertyBoolean("mute", true)
               // Keep Media3's last rendered frame visible while MPV is preparing to eliminate black screens
               nativeEngine.setPlaying(false)
@@ -4941,6 +4946,18 @@ class PlayerActivity :
             initialPositionApplied = initialPositionApplied,
           )
         if (!PlaybackSession.isCurrentGeneration(loadGeneration)) return@launch
+
+        // Native and MPV use different audio-track identifiers. Saved state is loaded asynchronously
+        // and can otherwise overwrite the MPV handoff's automatic track with a Native-only id.
+        if (activeEngineMode == PlaybackEngineMode.MPV && forceMpvAudioTrackAutoOnNextLoad) {
+          runCatching { MPVLib.setPropertyString("aid", "auto") }
+          forceMpvAudioTrackAutoOnNextLoad = false
+        }
+        // A previous MPV session can leave the process-wide mute property enabled. Reactivate
+        // audio after saved state and track selection so reopening the same video is audible.
+        if (activeEngineMode == PlaybackEngineMode.MPV) {
+          runCatching { PlaybackSession.setPropertyBoolean("mute", false) }
+        }
 
         // Apply track selection logic (defaults only apply when no saved state)
         trackSelector.onFileLoaded(hasState)

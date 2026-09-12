@@ -29,6 +29,7 @@ import app.infinity.mpvz.preferences.PlayerPreferences
 import app.infinity.mpvz.presentation.crash.CrashActivity
 import app.infinity.mpvz.presentation.crash.GlobalExceptionHandler
 import app.infinity.mpvz.repository.NetworkRepository
+import app.infinity.mpvz.ui.player.AndroidNativeCompat
 import app.infinity.mpvz.ui.player.PlaybackPhase
 import app.infinity.mpvz.ui.player.PlaybackSession
 import app.infinity.mpvz.ui.player.PlayerActivity
@@ -65,6 +66,11 @@ class App :
 
   override fun onCreate() {
     super.onCreate()
+
+    // Apply this before app-owned worker threads and either native MPV entry point start. Bionic's
+    // fdsan level setter is intended for single-threaded setup, and the bundled libmpv's raw-clone
+    // subprocess path otherwise corrupts its ownership bookkeeping on Android 16.
+    AndroidNativeCompat.applyMpvSubprocessWorkaround()
 
     // Initialize Koin
     startKoin {

@@ -59,3 +59,9 @@ target_compile_definitions(qjs_runtime PRIVATE _GNU_SOURCE QUICKJS_NG_BUILD)
 target_compile_options(qjs_runtime PRIVATE -funsigned-char)
 target_link_libraries(qjs_runtime dl m)
 mpvinfinity_optimize_native_target(qjs_runtime)
+
+# Android 16 fdsan compatibility shim for mpv's raw-clone subprocess path.
+# Only loaded at runtime on API 36+; keeps the workaround invisible on older devices.
+add_library(android_compat SHARED android_compat.c)
+target_link_libraries(android_compat log dl)
+mpvinfinity_optimize_native_target(android_compat)

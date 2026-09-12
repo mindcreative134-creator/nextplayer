@@ -45,8 +45,8 @@ class YtdlPreferences(
   val geoBypass = preferenceStore.getBoolean("ytdl_geo_bypass", false)
   val playlistMode = preferenceStore.getEnum("ytdl_playlist_mode", YtdlPlaylistMode.DEFAULT)
   val liveFromStart = preferenceStore.getBoolean("ytdl_live_from_start", false)
+  val showDownloadQualityChooser = preferenceStore.getBoolean("ytdl_show_download_quality_chooser", false)
   val sponsorBlockMark = preferenceStore.getString("ytdl_sponsorblock_mark", "")
   val sponsorBlockRemove = preferenceStore.getString("ytdl_sponsorblock_remove", "")
   val customRawOptions = preferenceStore.getString("ytdl_custom_raw_options", "")
-  val showDownloadQualityChooser = preferenceStore.getBoolean("ytdl_show_download_quality_chooser", false)
 }
