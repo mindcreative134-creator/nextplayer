@@ -12,11 +12,9 @@ package app.infinity.mpvz.ui.player
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.infinity.mpvz.BuildConfig
 import android.view.Surface
 import app.infinity.mpvz.data.network.proxy.HlsStreamingProxy
 import app.infinity.mpvz.data.network.proxy.NetworkStreamingProxy
@@ -734,11 +732,9 @@ object PlaybackSession : MPVLib.EventObserver {
       clearTimelinePropertiesLocked()
       val userAgent = PlaybackHttpHeaders.userAgent(resolvedItem.headers)
       val headerFields = PlaybackHttpHeaders.toMpvHeaderFields(resolvedItem.headers)
-      val effectiveUserAgent =
-        userAgent
-          ?: defaultUserAgent?.takeIf { it.isNotBlank() }
-          ?: "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}; ${Build.MODEL}) NextPlayer/${BuildConfig.VERSION_NAME}"
-      MPVLib.setPropertyString("user-agent", effectiveUserAgent)
+      // URL-specific headers are request metadata, not a global mpv preference. Always apply the
+      // media UA, then restore the post-mpv.conf default for a headerless item.
+      MPVLib.setPropertyString("user-agent", userAgent ?: defaultUserAgent.orEmpty())
       MPVLib.setPropertyString("http-header-fields", headerFields)
       MPVLib.setPropertyString("force-media-title", "")
 
@@ -1560,6 +1556,22 @@ object PlaybackSession : MPVLib.EventObserver {
       }
   }
 
+  /**
+   * Resolves a queued item for Native Media3 as well as MPV. Network-browser items use the
+   * credential-free custom URI and must be registered with the app proxy before Media3 can open
+   * them; the registration is retained as the active stream until the next playback transition.
+   */
+  fun resolvePlayableUriForNative(item: PlaybackItem): String {
+    releaseActiveNetworkStream()
+    // Keep MediaStore content URIs for Media3. ContentDataSource can obtain the provider's
+    // descriptor directly; converting this back to file:// reintroduces the slow FUSE path.
+    if (item.playableUri.startsWith("content://")) return item.playableUri
+    if (item.originalUri.startsWith("content://")) return item.originalUri
+    val resolved = resolvePlayableUri(item)
+    nativeLock.withLock { activeNetworkStream = resolved.registration }
+    return resolved.uri
+  }
+
   private fun resolvePlayableUri(item: PlaybackItem): ResolvedPlayable {
     val reference =
       NetworkPlaybackUri.parse(item.playableUri)
@@ -1599,14 +1611,29 @@ object PlaybackSession : MPVLib.EventObserver {
     if (item.playableUri.startsWith("fd://") && item.originalUri.startsWith("content://")) {
       val context = applicationContext ?: error("Application context is unavailable for content URI playback")
       val refreshedUri =
-        Uri.parse(item.originalUri).openContentFd(context)
+        Uri.parse(NetworkPlaybackUri.normalize(item.originalUri)).openContentFd(context)
           ?: error("Unable to reopen content URI for playback")
       return ResolvedPlayable(refreshedUri)
     }
 
-    if (!item.playableUri.startsWith("content://")) return ResolvedPlayable(item.playableUri)
-    val context = applicationContext ?: return ResolvedPlayable(item.playableUri)
-    return ResolvedPlayable(Uri.parse(item.playableUri).openContentFd(context) ?: item.playableUri)
+    // Resolve a local path for native integrations that cannot consume content:// directly.
+    // Native Media3 uses resolvePlayableUriForNative above and deliberately retains content://.
+    val context = applicationContext
+    if (context != null) {
+      val localPath = sequenceOf(item.playableUri, item.originalUri)
+        .mapNotNull { candidate ->
+          if (!candidate.startsWith("content://")) return@mapNotNull null
+          Uri.parse(candidate).resolveLocalPath(context)
+        }
+        .firstOrNull()
+      if (localPath != null) {
+        Log.d(TAG, "Using direct local path for Native Media3: $localPath")
+        return ResolvedPlayable(localPath)
+      }
+    }
+    if (item.playableUri.startsWith("content://")) return ResolvedPlayable(item.playableUri)
+    if (item.originalUri.startsWith("content://")) return ResolvedPlayable(item.originalUri)
+    return ResolvedPlayable(item.playableUri)
   }
 
   private fun releaseActiveNetworkStream() {

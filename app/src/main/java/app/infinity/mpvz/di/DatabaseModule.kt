@@ -734,6 +734,14 @@ val MIGRATION_17_18 =
     }
   }
 
+val MIGRATION_18_19 =
+  object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `PlaybackStateEntity` ADD COLUMN `videoAspect` TEXT NOT NULL DEFAULT 'Fit'")
+      db.execSQL("ALTER TABLE `PlaybackStateEntity` ADD COLUMN `customAspectRatio` REAL NOT NULL DEFAULT -1.0")
+    }
+  }
+
 val DatabaseModule =
   module {
     single<Json> {
@@ -766,6 +774,7 @@ val DatabaseModule =
           MIGRATION_15_16,
           MIGRATION_16_17,
           MIGRATION_17_18,
+          MIGRATION_18_19,
         ).build()
     }
 

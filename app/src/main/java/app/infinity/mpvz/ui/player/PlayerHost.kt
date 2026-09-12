@@ -72,6 +72,10 @@ interface PlayerHost {
 
   fun isNativeEngineActive(): Boolean = false
 
+  fun isNativePlaying(): Boolean = false
+
+  fun nativePlaybackSpeed(): Float = 1f
+
   fun nativePauseUnpause() {}
 
   fun nativePause() {}
@@ -82,5 +86,27 @@ interface PlayerHost {
 
   fun nativeSeekTo(positionMs: Long) {}
 
+  fun nativePlaybackPositionSeconds(): Double = 0.0
+
+  fun nativePlaybackDurationSeconds(): Double = 0.0
+
+  fun nativeSetLoopA(positionSeconds: Double?) {}
+
+  fun nativeSetLoopB(positionSeconds: Double?) {}
+
+  fun nativeClearLoop() {}
+
   fun nativeSetSpeed(speed: Float) {}
+
+  fun nativeSetVideoAspect(aspect: VideoAspect) {}
+
+  fun nativeSetZoom(zoom: Float) {}
+
+  fun nativeSetPan(x: Float, y: Float) {}
+
+  fun nativeSetSubtitleScale(scale: Float) {}
+
+  fun nativeSetSubtitlePosition(position: Int) {}
+
+  fun nativeAddSubtitle(uri: android.net.Uri, select: Boolean): Boolean = false
 }

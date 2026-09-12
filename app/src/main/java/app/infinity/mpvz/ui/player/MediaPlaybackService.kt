@@ -1854,6 +1854,8 @@ class MediaPlaybackService :
             (oldState?.audioDelay ?: 0) / PLAYBACK_STATE_MILLISECONDS_TO_SECONDS.toDouble(),
           ) * PLAYBACK_STATE_MILLISECONDS_TO_SECONDS
         ).toInt(),
+      videoAspect = oldState?.videoAspect ?: "Fit",
+      customAspectRatio = oldState?.customAspectRatio ?: -1f,
       externalSubtitles = oldState?.externalSubtitles.orEmpty(),
     )
   }

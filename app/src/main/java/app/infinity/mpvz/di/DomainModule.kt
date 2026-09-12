@@ -57,6 +57,7 @@ val domainModule =
     single { WyzieSearchRepository(androidContext(), get(), get(), get(), get()) }
     single { MpvRxSubtitleHubRepository(get(), get(), get(), get()) }
     single { OnlineSubtitleOrchestrator(get<WyzieSearchRepository>(), get<MpvRxSubtitleHubRepository>()) }
+    single { app.infinity.mpvz.repository.ai.EmbeddedSubtitleTranslator(get(), get(), get()) }
     single { IntroDbRepository(get(), get()) }
     single { OpenCodeClient(get(), get()) }
     single { GroqClient(get(), get()) }
