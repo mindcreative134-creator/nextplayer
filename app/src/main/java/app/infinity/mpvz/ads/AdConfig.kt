@@ -34,10 +34,17 @@ object AdConfig {
 
   // ─────────────────────────────────────────────────────────────────────────
   // TOGGLE: true = live revenue, false = test ads (safe for debugging)
-  // Set to FALSE before installing on your own device for testing!
-  // Set to TRUE only for production/Play Store signed builds.
+  // When true and autoFallbackToTestOnNoFill is true, live ads are requested
+  // first. If AdMob has no live inventory or account is pending (code 3 NO_FILL),
+  // it seamlessly falls back to Google's test ad units so ads ALWAYS display.
   // ─────────────────────────────────────────────────────────────────────────
   var useLiveAds: Boolean = true
+
+  /**
+   * If true, whenever a live ad fails to load (e.g. newly created units with no fill yet),
+   * the system will immediately fallback to Google official test ad unit so ads show up reliably.
+   */
+  var autoFallbackToTestOnNoFill: Boolean = true
 
   // Optional: add your device's hashed ID here to force test mode on that device
   // even when useLiveAds = true. Get your hash from logcat: "Use RequestConfiguration..."
@@ -67,29 +74,34 @@ object AdConfig {
   val rewardedInterstitialAdUnitId: String
     get() = if (useLiveAds) LIVE_REWARDED_INTERSTITIAL_AD_ID else TEST_REWARDED_INTERSTITIAL_AD_ID
 
+  fun getFallbackForUnit(adUnitId: String): String {
+    return when (adUnitId) {
+      LIVE_APP_OPEN_AD_ID -> TEST_APP_OPEN_AD_ID
+      LIVE_BANNER_AD_ID -> TEST_BANNER_AD_ID
+      LIVE_INTERSTITIAL_AD_ID -> TEST_INTERSTITIAL_AD_ID
+      LIVE_NATIVE_AD_ID -> TEST_NATIVE_AD_ID
+      LIVE_REWARDED_AD_ID -> TEST_REWARDED_AD_ID
+      LIVE_REWARDED_INTERSTITIAL_AD_ID -> TEST_REWARDED_INTERSTITIAL_AD_ID
+      else -> adUnitId
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Smart Frequency Capping — prevents irritation & invalid traffic penalties
-  //
-  // Strategy for a VIDEO PLAYER app:
-  //  • Interstitial: NOT on player open (too aggressive for video apps).
-  //                  ONLY on exit, every 3rd video, min 4 minutes apart.
-  //  • App Open:     Cold start only (not on resume/background restore).
-  //  • Pause Banner: Natural moment, user already stopped — high CTR, low annoyance.
-  //  • Banner:       Always visible in browse screens — steady passive income.
   // ─────────────────────────────────────────────────────────────────────────
 
-  /** Minimum time between two interstitial shows (4 minutes). AdMob recommends 3-5 min for video apps. */
-  const val INTERSTITIAL_COOLDOWN_MS = 4 * 60 * 1000L // 4 minutes
+  /** Minimum time between two interstitial shows (60 seconds for comfortable test & user experience). */
+  const val INTERSTITIAL_COOLDOWN_MS = 60 * 1000L
 
-  /** Show interstitial on exit only after this many video exits. Resets after each show. */
-  const val INTERSTITIAL_MIN_EXITS_BEFORE_SHOW = 3
+  /** Show interstitial on exit after 1 video exit. Resets after each show. */
+  const val INTERSTITIAL_MIN_EXITS_BEFORE_SHOW = 1
 
   /** App Open ads expire after 4 hours (AdMob policy requirement). */
   const val APP_OPEN_EXPIRY_HOURS = 4L
 
   /** Backoff before retrying a failed ad request — prevents invalid traffic floods. */
-  const val AD_RETRY_BACKOFF_MS = 30_000L // 30 seconds
+  const val AD_RETRY_BACKOFF_MS = 15_000L // 15 seconds
 
   /** Wait this long after a steady pause before showing the pause banner (avoids seek spam). */
-  const val PAUSE_AD_GRACE_PERIOD_MS = 1_200L // 1.2 seconds
+  const val PAUSE_AD_GRACE_PERIOD_MS = 1_000L // 1.0 second
 }

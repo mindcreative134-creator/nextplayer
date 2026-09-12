@@ -6,10 +6,17 @@ package app.infinity.mpvz.ads
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import android.view.ViewGroup
 import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
@@ -17,10 +24,11 @@ import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.appopen.AppOpenAd
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import android.view.ViewGroup
-import com.google.android.gms.ads.AdListener
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
+import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
 import java.lang.ref.WeakReference
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
@@ -43,18 +51,29 @@ object AdmobManager {
   // Interstitial Ad State
   private var interstitialAd: InterstitialAd? = null
   private var isInterstitialLoading = false
-  private var lastInterstitialShowTime: Long = 0
-  private var lastInterstitialFailTime: Long = 0
+  private var lastInterstitialShowTime: Long = 0L
+  private var lastInterstitialFailTime: Long = 0L
   private var videoExitsCounter = 0
 
   // Pause Banner Ad State (preloaded and cached to prevent request storms)
   private var cachedPauseAdView: AdView? = null
   private var isPauseAdLoaded = false
+  val isPauseAdReadyState = androidx.compose.runtime.mutableStateOf(false)
   private var isPauseAdLoading = false
   private var lastPauseAdLoadTime = 0L
   private var lastPauseAdFailTime = 0L
-  private const val PAUSE_AD_RETRY_COOLDOWN_MS = 45_000L
+  private const val PAUSE_AD_RETRY_COOLDOWN_MS = 30_000L
   private const val PAUSE_AD_REFRESH_MIN_MS = 120_000L
+
+  // Rewarded Ad State
+  private var rewardedAd: RewardedAd? = null
+  private var isRewardedLoading = false
+  private var lastRewardedFailTime = 0L
+
+  // Rewarded Interstitial Ad State
+  private var rewardedInterstitialAd: RewardedInterstitialAd? = null
+  private var isRewardedInterstitialLoading = false
+  private var lastRewardedInterstitialFailTime = 0L
 
   /**
    * Initializes the Google Mobile Ads SDK asynchronously.
@@ -62,7 +81,7 @@ object AdmobManager {
   fun initialize(context: Context) {
     if (isInitialized.compareAndSet(false, true)) {
       appLaunchTimestamp = SystemClock.elapsedRealtime()
-      lastInterstitialShowTime = SystemClock.elapsedRealtime()
+      lastInterstitialShowTime = 0L // Allow first exit to show interstitial
       try {
         if (AdConfig.testDeviceHashedIds.isNotEmpty()) {
           val reqConfig = RequestConfiguration.Builder()
@@ -74,6 +93,7 @@ object AdmobManager {
           Log.d(TAG, "AdMob initialized successfully: ${initializationStatus.adapterStatusMap.keys}")
           loadAppOpenAd(context.applicationContext)
           loadInterstitialAd(context.applicationContext)
+          loadRewardedAd(context.applicationContext)
           preloadPauseAd(context.applicationContext)
         }
       } catch (e: Exception) {
@@ -97,6 +117,7 @@ object AdmobManager {
 
     isAppOpenAdLoading = true
     val request = AdRequest.Builder().build()
+    Log.d(TAG, "Loading App Open Ad with unit: $adUnitId")
     AppOpenAd.load(
       context,
       adUnitId,
@@ -112,7 +133,7 @@ object AdmobManager {
           // If a pending cold-start activity was waiting on launch, show it immediately
           val coldAct = coldStartActivityRef?.get()
           val elapsedSinceLaunch = SystemClock.elapsedRealtime() - appLaunchTimestamp
-          if (coldAct != null && !coldAct.isFinishing && !coldAct.isDestroyed && elapsedSinceLaunch < 6_000L) {
+          if (coldAct != null && !coldAct.isFinishing && !coldAct.isDestroyed && elapsedSinceLaunch < 10_000L) {
             coldStartActivityRef = null
             showAppOpenAdIfAvailable(coldAct)
           }
@@ -123,7 +144,14 @@ object AdmobManager {
           appOpenAd = null
           isAppOpenAdLoading = false
           lastAppOpenFailTime = SystemClock.elapsedRealtime()
-          coldStartActivityRef = null
+
+          // Cascading fallback to test ad if live ad unit returns no-fill or error
+          if (AdConfig.autoFallbackToTestOnNoFill && adUnitId != AdConfig.TEST_APP_OPEN_AD_ID) {
+            Log.i(TAG, "Cascading to Google Test App Open ad unit (${AdConfig.TEST_APP_OPEN_AD_ID})")
+            loadAppOpenAd(context, AdConfig.TEST_APP_OPEN_AD_ID)
+          } else {
+            coldStartActivityRef = null
+          }
         }
       },
     )
@@ -145,7 +173,7 @@ object AdmobManager {
     val ad = appOpenAd
     if (ad == null || !isAppOpenAdAvailable()) {
       val elapsedSinceLaunch = SystemClock.elapsedRealtime() - appLaunchTimestamp
-      if (elapsedSinceLaunch < 5_000L) {
+      if (elapsedSinceLaunch < 10_000L) {
         coldStartActivityRef = WeakReference(activity)
       }
       loadAppOpenAd(activity.applicationContext)
@@ -159,7 +187,7 @@ object AdmobManager {
     }
 
     // Defer so the activity is started/resumed before the full-screen ad appears.
-    android.os.Handler(android.os.Looper.getMainLooper()).post {
+    Handler(Looper.getMainLooper()).post {
       if (activity.isFinishing || activity.isDestroyed) {
         onComplete()
         return@post
@@ -215,6 +243,7 @@ object AdmobManager {
 
     isInterstitialLoading = true
     val request = AdRequest.Builder().build()
+    Log.d(TAG, "Loading Interstitial Ad with unit: $adUnitId")
     InterstitialAd.load(
       context,
       adUnitId,
@@ -232,6 +261,12 @@ object AdmobManager {
           interstitialAd = null
           isInterstitialLoading = false
           lastInterstitialFailTime = SystemClock.elapsedRealtime()
+
+          // Cascading fallback to test ad if live ad unit returns no-fill or error
+          if (AdConfig.autoFallbackToTestOnNoFill && adUnitId != AdConfig.TEST_INTERSTITIAL_AD_ID) {
+            Log.i(TAG, "Cascading to Google Test Interstitial ad unit (${AdConfig.TEST_INTERSTITIAL_AD_ID})")
+            loadInterstitialAd(context, AdConfig.TEST_INTERSTITIAL_AD_ID)
+          }
         }
       },
     )
@@ -239,9 +274,6 @@ object AdmobManager {
 
   /**
    * Shows an interstitial ad when opening the player / starting video playback.
-   * The show is deferred until the activity is started/resumed because calling
-   * `InterstitialAd.show()` on an activity that is not yet resumed throws
-   * `IllegalStateException`, which crashes the app during quick starts.
    */
   fun showInterstitialOnPlayerStart(activity: Activity, onFinished: () -> Unit = {}) {
     val ad = interstitialAd
@@ -284,9 +316,7 @@ object AdmobManager {
           onFinished()
         }
       }
-      // Defer to the next main-loop pass so the activity has reached RESUMED before
-      // the full-screen ad takes over. This avoids an illegal-state crash on cold start.
-      android.os.Handler(android.os.Looper.getMainLooper()).post {
+      Handler(Looper.getMainLooper()).post {
         showWhenReady()
       }
     } else {
@@ -304,7 +334,6 @@ object AdmobManager {
     val now = SystemClock.elapsedRealtime()
     val timeSinceLast = now - lastInterstitialShowTime
 
-    // Frequency capping: show at most once every 4 minutes, and only after at least N exits
     val isCooldownElapsed = timeSinceLast >= AdConfig.INTERSTITIAL_COOLDOWN_MS
     val isFrequencyMet = videoExitsCounter >= AdConfig.INTERSTITIAL_MIN_EXITS_BEFORE_SHOW && isCooldownElapsed
 
@@ -350,7 +379,7 @@ object AdmobManager {
           onDismissed()
         }
       }
-      android.os.Handler(android.os.Looper.getMainLooper()).post {
+      Handler(Looper.getMainLooper()).post {
         showBlock()
       }
     } else {
@@ -368,7 +397,6 @@ object AdmobManager {
 
   /**
    * Returns a cached AdView for the pause screen, creating and preloading it if not already present.
-   * This guarantees that pausing the video repeatedly will NOT trigger multiple rapid ad requests.
    */
   fun getOrCreatePauseAdView(context: Context): AdView {
     val existing = cachedPauseAdView
@@ -376,24 +404,39 @@ object AdmobManager {
       (existing.parent as? ViewGroup)?.removeView(existing)
       return existing
     }
+
+    var currentUnit = AdConfig.bannerAdUnitId
+    var hasFallenBack = false
+
     val adView = AdView(context.applicationContext).apply {
-      this.adUnitId = AdConfig.bannerAdUnitId
-      // Standard banner format is universally supported by AdMob Banner ad units
+      this.adUnitId = currentUnit
       setAdSize(AdSize.BANNER)
       adListener = object : AdListener() {
         override fun onAdLoaded() {
-          Log.d(TAG, "Pause Banner Ad loaded successfully")
+          Log.d(TAG, "Pause Banner Ad loaded successfully ($currentUnit)")
           isPauseAdLoaded = true
+          isPauseAdReadyState.value = true
           isPauseAdLoading = false
           lastPauseAdFailTime = 0
           lastPauseAdLoadTime = SystemClock.elapsedRealtime()
         }
 
         override fun onAdFailedToLoad(error: LoadAdError) {
-          Log.w(TAG, "Pause Banner Ad failed to load: ${error.message} (code ${error.code})")
-          isPauseAdLoaded = false
-          isPauseAdLoading = false
-          lastPauseAdFailTime = SystemClock.elapsedRealtime()
+          Log.w(TAG, "Pause Banner Ad failed to load ($currentUnit): ${error.message} (code ${error.code})")
+          if (!hasFallenBack && AdConfig.autoFallbackToTestOnNoFill && currentUnit != AdConfig.TEST_BANNER_AD_ID) {
+            hasFallenBack = true
+            currentUnit = AdConfig.TEST_BANNER_AD_ID
+            this@apply.adUnitId = currentUnit
+            Log.i(TAG, "Cascading Pause Banner to Google Test Banner unit: $currentUnit")
+            post {
+              loadAd(AdRequest.Builder().build())
+            }
+          } else {
+            isPauseAdLoaded = false
+            isPauseAdReadyState.value = false
+            isPauseAdLoading = false
+            lastPauseAdFailTime = SystemClock.elapsedRealtime()
+          }
         }
       }
     }
@@ -427,4 +470,181 @@ object AdmobManager {
   }
 
   fun isPauseAdReady(): Boolean = isPauseAdLoaded
+
+  // ==========================================
+  // Rewarded Ad Management
+  // ==========================================
+
+  fun loadRewardedAd(context: Context, adUnitId: String = AdConfig.rewardedAdUnitId) {
+    if (isRewardedLoading || rewardedAd != null) return
+
+    isRewardedLoading = true
+    val request = AdRequest.Builder().build()
+    Log.d(TAG, "Loading Rewarded Ad with unit: $adUnitId")
+    RewardedAd.load(
+      context,
+      adUnitId,
+      request,
+      object : RewardedAdLoadCallback() {
+        override fun onAdLoaded(ad: RewardedAd) {
+          Log.d(TAG, "Rewarded Ad loaded successfully ($adUnitId)")
+          rewardedAd = ad
+          isRewardedLoading = false
+          lastRewardedFailTime = 0
+        }
+
+        override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+          Log.w(TAG, "Rewarded Ad failed to load ($adUnitId): ${loadAdError.message} (code ${loadAdError.code})")
+          rewardedAd = null
+          isRewardedLoading = false
+          lastRewardedFailTime = SystemClock.elapsedRealtime()
+
+          if (AdConfig.autoFallbackToTestOnNoFill && adUnitId != AdConfig.TEST_REWARDED_AD_ID) {
+            Log.i(TAG, "Cascading to Google Test Rewarded ad unit (${AdConfig.TEST_REWARDED_AD_ID})")
+            loadRewardedAd(context, AdConfig.TEST_REWARDED_AD_ID)
+          }
+        }
+      },
+    )
+  }
+
+  fun showRewardedAd(
+    activity: Activity,
+    onUserEarnedReward: () -> Unit = {},
+    onDismissed: () -> Unit = {},
+  ) {
+    val ad = rewardedAd
+    if (ad != null && !activity.isFinishing && !activity.isDestroyed) {
+      ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+        override fun onAdDismissedFullScreenContent() {
+          Log.d(TAG, "Rewarded Ad dismissed")
+          rewardedAd = null
+          loadRewardedAd(activity.applicationContext)
+          onDismissed()
+        }
+
+        override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+          Log.w(TAG, "Rewarded Ad failed to show: ${adError.message}")
+          rewardedAd = null
+          loadRewardedAd(activity.applicationContext)
+          onDismissed()
+        }
+
+        override fun onAdShowedFullScreenContent() {
+          Log.d(TAG, "Rewarded Ad showing")
+        }
+      }
+      ad.show(activity) {
+        Log.d(TAG, "User earned reward from Rewarded Ad")
+        onUserEarnedReward()
+      }
+    } else {
+      loadRewardedAd(activity.applicationContext)
+      onDismissed()
+    }
+  }
+
+  // ==========================================
+  // Rewarded Interstitial Ad Management
+  // ==========================================
+
+  fun loadRewardedInterstitialAd(context: Context, adUnitId: String = AdConfig.rewardedInterstitialAdUnitId) {
+    if (isRewardedInterstitialLoading || rewardedInterstitialAd != null) return
+
+    isRewardedInterstitialLoading = true
+    val request = AdRequest.Builder().build()
+    Log.d(TAG, "Loading Rewarded Interstitial Ad with unit: $adUnitId")
+    RewardedInterstitialAd.load(
+      context,
+      adUnitId,
+      request,
+      object : RewardedInterstitialAdLoadCallback() {
+        override fun onAdLoaded(ad: RewardedInterstitialAd) {
+          Log.d(TAG, "Rewarded Interstitial Ad loaded successfully ($adUnitId)")
+          rewardedInterstitialAd = ad
+          isRewardedInterstitialLoading = false
+          lastRewardedInterstitialFailTime = 0
+        }
+
+        override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+          Log.w(TAG, "Rewarded Interstitial Ad failed to load ($adUnitId): ${loadAdError.message} (code ${loadAdError.code})")
+          rewardedInterstitialAd = null
+          isRewardedInterstitialLoading = false
+          lastRewardedInterstitialFailTime = SystemClock.elapsedRealtime()
+
+          if (AdConfig.autoFallbackToTestOnNoFill && adUnitId != AdConfig.TEST_REWARDED_INTERSTITIAL_AD_ID) {
+            Log.i(TAG, "Cascading to Google Test Rewarded Interstitial unit (${AdConfig.TEST_REWARDED_INTERSTITIAL_AD_ID})")
+            loadRewardedInterstitialAd(context, AdConfig.TEST_REWARDED_INTERSTITIAL_AD_ID)
+          }
+        }
+      },
+    )
+  }
+
+  fun showRewardedInterstitialAd(
+    activity: Activity,
+    onUserEarnedReward: () -> Unit = {},
+    onDismissed: () -> Unit = {},
+  ) {
+    val ad = rewardedInterstitialAd
+    if (ad != null && !activity.isFinishing && !activity.isDestroyed) {
+      ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+        override fun onAdDismissedFullScreenContent() {
+          Log.d(TAG, "Rewarded Interstitial dismissed")
+          rewardedInterstitialAd = null
+          loadRewardedInterstitialAd(activity.applicationContext)
+          onDismissed()
+        }
+
+        override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+          Log.w(TAG, "Rewarded Interstitial failed to show: ${adError.message}")
+          rewardedInterstitialAd = null
+          loadRewardedInterstitialAd(activity.applicationContext)
+          onDismissed()
+        }
+
+        override fun onAdShowedFullScreenContent() {
+          Log.d(TAG, "Rewarded Interstitial showing")
+        }
+      }
+      ad.show(activity) {
+        Log.d(TAG, "User earned reward from Rewarded Interstitial")
+        onUserEarnedReward()
+      }
+    } else {
+      loadRewardedInterstitialAd(activity.applicationContext)
+      onDismissed()
+    }
+  }
+
+  // ==========================================
+  // Native Ad Management
+  // ==========================================
+
+  fun loadNativeAd(
+    context: Context,
+    adUnitId: String = AdConfig.nativeAdUnitId,
+    onLoaded: (NativeAd) -> Unit,
+    onFailed: (LoadAdError) -> Unit = {},
+  ) {
+    var activeUnit = adUnitId
+    Log.d(TAG, "Loading Native Ad with unit: $activeUnit")
+    val builder = AdLoader.Builder(context, activeUnit)
+      .forNativeAd { nativeAd ->
+        Log.d(TAG, "Native Ad loaded successfully ($activeUnit)")
+        onLoaded(nativeAd)
+      }
+      .withAdListener(object : AdListener() {
+        override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+          Log.w(TAG, "Native Ad failed to load ($activeUnit): ${loadAdError.message} (code ${loadAdError.code})")
+          if (AdConfig.autoFallbackToTestOnNoFill && activeUnit != AdConfig.TEST_NATIVE_AD_ID) {
+            Log.i(TAG, "Cascading to Google Test Native unit (${AdConfig.TEST_NATIVE_AD_ID})")
+            loadNativeAd(context, AdConfig.TEST_NATIVE_AD_ID, onLoaded, onFailed)
+          } else {
+            onFailed(loadAdError)
+          }
+        }
+      })
+    builder.build().loadAd(AdRequest.Builder().build())
+  }
 }

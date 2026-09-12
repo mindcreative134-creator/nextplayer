@@ -69,7 +69,7 @@ fun PauseAdCard(
     return
   }
 
-  val isAdReady = AdmobManager.isPauseAdReady()
+  val isAdReady = AdmobManager.isPauseAdReadyState.value || AdmobManager.isPauseAdReady()
   if (!isAdReady) {
     return
   }
