@@ -378,6 +378,14 @@ class PlayerActivity :
     nativeEngine.setVideoAspect(aspect)
   }
 
+  override fun onVideoAspectChanged() {
+    if (playerPreferences.rememberVideoAspectPerVideo.get() && fileName.isNotBlank()) {
+      // Aspect changes are user edits to the current video's record. Persist immediately so a
+      // media transition cannot lose the change before the normal lifecycle save runs.
+      saveVideoPlaybackState(fileName, immediate = true)
+    }
+  }
+
   // ==================== State Management ====================
 
   /**
@@ -3140,12 +3148,7 @@ class PlayerActivity :
     if (firstAttempt.isSuccess) return null
 
     val firstError = firstAttempt.exceptionOrNull()
-    if (!decoderPreferences.useVulkan.get() || !VulkanCapabilities.isAvailable(this)) {
-      Log.e(TAG, "Failed to initialize MPV", firstError)
-      return firstError?.message ?: firstError?.toString() ?: "Unknown error"
-    }
-
-    Log.w(TAG, "MPV Vulkan init failed, retrying with OpenGL fallback for this session", firstError)
+    Log.w(TAG, "MPV init failed on first attempt, retrying with OpenGL fallback for this session", firstError)
     player.forceOpenGlFallback = true
     val fallbackAttempt = player.initializeSession(filesDir.path, cacheDir.path)
     fallbackAttempt.exceptionOrNull()?.let { error -> Log.e(TAG, "Failed to initialize MPV", error) }

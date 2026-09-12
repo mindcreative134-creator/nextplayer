@@ -63,12 +63,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -1782,10 +1780,13 @@ class MediaPlaybackService :
     if (identifier.isBlank()) return
     val snapshot = capturePlaybackStateSnapshot(identifier, oldState = null) ?: return
 
-    val pendingSave = playbackStateSaveJob
-    runBlocking(Dispatchers.IO) {
-      pendingSave?.cancelAndJoin()
-      persistPlaybackState(identifier, snapshot)
+    playbackStateSaveJob?.cancel()
+    persistenceScope.launch {
+      runCatching {
+        persistPlaybackState(identifier, snapshot)
+      }.onFailure { error ->
+        Log.e(TAG, "Error saving playback state on task removal", error)
+      }
     }
   }
 

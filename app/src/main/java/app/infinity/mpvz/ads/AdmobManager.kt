@@ -189,8 +189,8 @@ object AdmobManager {
       try {
         isShowingAppOpenAd = true
         ad.show(activity)
-      } catch (e: IllegalStateException) {
-        Log.w(TAG, "App Open Ad could not show (activity state): ${e.message}")
+      } catch (e: Exception) {
+        Log.w(TAG, "App Open Ad could not show: ${e.message}")
         isShowingAppOpenAd = false
         appOpenAd = null
         loadAppOpenAd(activity.applicationContext)
@@ -273,8 +273,8 @@ object AdmobManager {
               }
             }
             ad.show(activity)
-          } catch (e: IllegalStateException) {
-            Log.w(TAG, "Player Start Interstitial could not show (activity state): ${e.message}")
+          } catch (e: Exception) {
+            Log.w(TAG, "Player Start Interstitial could not show: ${e.message}")
             interstitialAd = null
             loadInterstitialAd(activity.applicationContext)
             onFinished()
@@ -339,8 +339,8 @@ object AdmobManager {
             }
 
             ad.show(activity)
-          } catch (e: IllegalStateException) {
-            Log.w(TAG, "Interstitial Ad could not show (activity state): ${e.message}")
+          } catch (e: Exception) {
+            Log.w(TAG, "Interstitial Ad could not show: ${e.message}")
             interstitialAd = null
             loadInterstitialAd(activity.applicationContext)
             onDismissed()

@@ -22,6 +22,7 @@ import kotlin.system.exitProcess
 class GlobalExceptionHandler(
   private val context: Context,
   private val activity: Class<*>,
+  private val defaultHandler: Thread.UncaughtExceptionHandler? = Thread.getDefaultUncaughtExceptionHandler(),
 ) : Thread.UncaughtExceptionHandler {
   override fun uncaughtException(
     t: Thread,
@@ -44,18 +45,13 @@ class GlobalExceptionHandler(
       intent.putExtra("exception", trimmedTrace)
       context.startActivity(intent)
     } catch (_: Throwable) {
-      // Prevent secondary crash loops or system ANR stalls if CrashActivity fails to start
+      defaultHandler?.uncaughtException(t, e)
+      return
     }
 
-    // Give the CrashActivity a short grace window to launch and render before the process exit.
-    // Calling exitProcess() immediately can cut off the just-started activity, leaving the user
-    // staring at a dead app and the OS reporting "App Not Responding".
-    val crashStartUptime = SystemClock.uptimeMillis()
-    Handler(Looper.getMainLooper()).postDelayed({
-      if (SystemClock.uptimeMillis() - crashStartUptime >= 300L) {
-        exitProcess(0)
-      }
-    }, 1500L)
+    // Immediately kill the crashed process cleanly so the OS does not detect a hanging main thread / ANR
+    android.os.Process.killProcess(android.os.Process.myPid())
+    exitProcess(10)
   }
 
   private fun persistCrashLog(e: Throwable) {

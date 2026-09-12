@@ -20,9 +20,43 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontobfuscate
--keep,allowoptimization class is.xyz.mpv.** { public protected *; }
--keep,allowoptimization class net.mediaarea.mediainfo.lib.** { public protected *; }
+
+# Preserve all JNI native methods across the entire app and libraries
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# MPV core and JNI bindings (do not allow optimization to alter JNI signatures)
+-keep class is.xyz.mpv.** { *; }
+-keepclassmembers class is.xyz.mpv.** { *; }
+-keep class net.mediaarea.mediainfo.lib.** { *; }
+-keepclassmembers class net.mediaarea.mediainfo.lib.** { *; }
 -keep class org.libtorrent4j.swig.libtorrent_jni { *; }
+-keep class org.libtorrent4j.** { *; }
+
+# AndroidX Media3 & Jellyfin FFmpeg Audio Decoder
+-keep class androidx.media3.** { *; }
+-keepclassmembers class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+-keep class org.jellyfin.media3.decoder.ffmpeg.** { *; }
+-keepclassmembers class org.jellyfin.media3.decoder.ffmpeg.** { *; }
+-dontwarn org.jellyfin.media3.decoder.ffmpeg.**
+
+# Room Database Entities and DAOs
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+-keep class app.infinity.mpvz.database.entities.** { *; }
+-keep class app.infinity.mpvz.database.dao.** { *; }
+-keep class * extends androidx.room.RoomDatabase
+
+# Koin Dependency Injection
+-keep class org.koin.** { *; }
+-dontwarn org.koin.**
+
+# NanoHTTPD (local streaming & torrent proxy)
+-keep class fi.iki.elonen.** { *; }
+-dontwarn fi.iki.elonen.**
+
 -dontwarn org.xmlpull.v1.**
 -dontnote org.xmlpull.v1.**
 -dontwarn org.slf4j.impl.StaticLoggerBinder
