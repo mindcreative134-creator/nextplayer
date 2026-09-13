@@ -124,6 +124,7 @@ fun OnlineSubtitleSearchSheet(
       val context = LocalContext.current
       val mediaInfo = remember(mediaTitle) { MediaInfoParser.parse(mediaTitle) }
       var searchQuery by remember { mutableStateOf(mediaInfo.title) }
+      var selectedMovieTitle by remember { mutableStateOf<String?>(null) }
       val aiPreferences = koinInject<AiPreferences>()
       val aiService = koinInject<AiService>()
       val scope = rememberCoroutineScope()
@@ -151,6 +152,7 @@ fun OnlineSubtitleSearchSheet(
       }
 
       fun runSearch() {
+        selectedMovieTitle = null
         val q = if (searchQuery.isNotBlank()) searchQuery else mediaInfo.title
         searchQuery = q
         onSearchMedia(q)
@@ -295,7 +297,43 @@ fun OnlineSubtitleSearchSheet(
               episodes = seasonEpisodes,
               selectedEpisode = selectedEpisode,
               onSelectEpisode = onSelectEpisode,
-              onClose = onClearMediaSelection,
+              onClose = {
+                selectedMovieTitle = null
+                onClearMediaSelection()
+              },
+            )
+          } else if (showWyzieSelection && selectedMovieTitle != null) {
+            InputChip(
+              selected = true,
+              onClick = {
+                selectedMovieTitle = null
+                onClearMediaSelection()
+                runSearch()
+              },
+              label = {
+                Text(
+                  text = selectedMovieTitle!!,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+              },
+              trailingIcon = {
+                IconButton(
+                  onClick = {
+                    selectedMovieTitle = null
+                    onClearMediaSelection()
+                    runSearch()
+                  },
+                  modifier = Modifier.size(18.dp),
+                ) {
+                  Icon(
+                    Icons.RoundedFilled.Close,
+                    contentDescription = "Clear",
+                    modifier = Modifier.size(14.dp),
+                  )
+                }
+              },
+              modifier = Modifier.padding(start = 4.dp),
             )
           }
         }
@@ -340,11 +378,43 @@ fun OnlineSubtitleSearchSheet(
                     result = result,
                     onClick = {
                       searchQuery = result.title
+                      if (result.mediaType != "tv") {
+                        selectedMovieTitle = result.title
+                      }
                       onSelectMedia(result)
                       keyboardController?.hide()
                     },
                   )
                 }
+              }
+            }
+          }
+        }
+
+        if (!isSearching && !isSearchingMedia && searchResults.isEmpty() && mediaSearchResults.isEmpty()) {
+          item(key = "empty_subtitles_state") {
+            Box(
+              modifier =
+                Modifier
+                  .fillMaxWidth()
+                  .padding(vertical = 40.dp, horizontal = 24.dp),
+              contentAlignment = Alignment.Center,
+            ) {
+              Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+              ) {
+                Icon(
+                  Icons.RoundedFilled.Subtitles,
+                  contentDescription = null,
+                  modifier = Modifier.size(40.dp),
+                  tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                )
+                Text(
+                  text = stringResource(R.string.ui_no_results_found),
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
               }
             }
           }

@@ -231,11 +231,11 @@ object YtdlpManager {
               add("--playlist-end")
               add(MAX_IMPORTED_PLAYLIST_ENTRIES.toString())
 
-              (userAgentOverride?.takeIf(String::isNotBlank)
-                ?: preferences.customUserAgent.get().takeIf(String::isNotBlank))?.let { userAgent ->
-                add("--user-agent")
-                add(userAgent)
-              }
+              val userAgent = userAgentOverride?.trim().takeIf { !it.isNullOrBlank() }
+                ?: preferences.customUserAgent.get().trim().takeIf(String::isNotBlank)
+                ?: YtdlpOptionsBuilder.DEFAULT_USER_AGENT
+              add("--user-agent")
+              add(userAgent)
               preferences.referer.get().takeIf(String::isNotBlank)?.let { referer ->
                 add("--referer")
                 add(referer)
@@ -405,10 +405,9 @@ object YtdlpManager {
         add("--format")
         add("best[acodec!=none][vcodec!=none]/best")
         if (isInstagram) {
-          // Instagram frequently rejects the default mobile/blank request headers. Use a
-          // browser-like request and the app's exported cookies when available.
+          // Instagram frequently rejects the default mobile/blank request headers.
           add("--user-agent")
-          add("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36")
+          add(YtdlpOptionsBuilder.DEFAULT_USER_AGENT)
           add("--referer")
           add("https://www.instagram.com/")
         }

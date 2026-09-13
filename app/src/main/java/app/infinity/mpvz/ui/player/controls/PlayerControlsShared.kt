@@ -350,7 +350,12 @@ fun RenderPlayerButton(
                 ),
           ) {
             Text(
-              text = decoder.title,
+              text =
+                when {
+                  activity.isNativeEngineActive() -> "Native"
+                  activity.currentEngineSelectionForControls() == app.infinity.mpvz.ui.player.PlaybackEngineMode.AUTO -> "Auto (${decoder.title})"
+                  else -> decoder.title
+                },
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
               style = MaterialTheme.typography.bodyMedium,
