@@ -316,6 +316,12 @@ fun MusicLibraryContent(
     onPermissionGranted = { musicViewModel.scanLibrary(context) },
   )
 
+  LaunchedEffect(permissionState.status) {
+    if (permissionState.status is com.google.accompanist.permissions.PermissionStatus.Denied) {
+      permissionState.launchPermissionRequest()
+    }
+  }
+
   // Rescan on resume if library is currently empty (e.g. after granting permissions)
   DisposableEffect(lifecycleOwner) {
     val observer = LifecycleEventObserver { _, event ->
@@ -2590,7 +2596,13 @@ private fun CreatePlaylistDialog(
 }
 
 @Composable
-private fun EmptyMusicState(text: String) {
+private fun EmptyMusicState(
+  text: String,
+  onRefresh: (() -> Unit)? = null,
+) {
+  val context = LocalContext.current
+  val hasPermission = PermissionUtils.hasStoragePermission(context, audioOnly = true)
+
   Box(
     modifier = Modifier
       .fillMaxSize()
@@ -2606,11 +2618,34 @@ private fun EmptyMusicState(text: String) {
       )
       Spacer(modifier = Modifier.height(12.dp))
       Text(
-        text = text,
+        text = if (!hasPermission) "Audio permission required to load songs" else text,
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center
       )
+      Spacer(modifier = Modifier.height(16.dp))
+      if (!hasPermission) {
+        androidx.compose.material3.Button(
+          onClick = {
+            val activity = context as? android.app.Activity
+            if (activity != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+              androidx.core.app.ActivityCompat.requestPermissions(
+                activity,
+                arrayOf(android.Manifest.permission.READ_MEDIA_AUDIO),
+                1002
+              )
+            } else {
+              PermissionUtils.openAppSettings(context)
+            }
+          }
+        ) {
+          Text("Grant Permission")
+        }
+      } else if (onRefresh != null) {
+        androidx.compose.material3.OutlinedButton(onClick = onRefresh) {
+          Text("Scan Library")
+        }
+      }
     }
   }
 }

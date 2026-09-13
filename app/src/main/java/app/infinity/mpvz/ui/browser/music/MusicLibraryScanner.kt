@@ -34,7 +34,7 @@ object MusicLibraryScanner {
       MediaStore.Audio.Media.SIZE
     )
 
-    val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.DURATION} > 1000"
+    val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.DURATION} > 0 OR ${MediaStore.Audio.Media.SIZE} > 0)"
     val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
 
     try {

@@ -45,8 +45,8 @@ android {
     applicationId = "com.nextplayer.pro"
     minSdk = 26
     targetSdk = 36
-    versionCode = 549
-    versionName = "1.1.8"
+    versionCode = 550
+    versionName = "1.1.9"
 
     vectorDrawables {
       useSupportLibrary = true
@@ -230,7 +230,7 @@ androidComponents {
       }
 
       val channelVersionCode =
-        if (variant.buildType == "preview") previewVersionCode else (output.versionCode.orNull ?: 548)
+        if (variant.buildType == "preview") previewVersionCode else (output.versionCode.orNull ?: 550)
 
       if (isPlaystore || abi == null) {
         output.versionCode.set(channelVersionCode)
