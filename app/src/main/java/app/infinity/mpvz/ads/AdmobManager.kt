@@ -421,15 +421,16 @@ object AdmobManager {
       return existing
     }
 
-    var currentUnit = AdConfig.bannerAdUnitId
-    var hasFallenBack = false
+    return createPauseAdViewInstance(context, AdConfig.bannerAdUnitId)
+  }
 
+  private fun createPauseAdViewInstance(context: Context, unitId: String): AdView {
     val adView = AdView(context.applicationContext).apply {
-      this.adUnitId = currentUnit
+      this.adUnitId = unitId
       setAdSize(AdSize.BANNER)
       adListener = object : AdListener() {
         override fun onAdLoaded() {
-          Log.d(TAG, "Pause Banner Ad loaded successfully ($currentUnit)")
+          Log.d(TAG, "Pause Banner Ad loaded successfully ($unitId)")
           isPauseAdLoaded = true
           isPauseAdReadyState.value = true
           isPauseAdLoading = false
@@ -438,20 +439,22 @@ object AdmobManager {
         }
 
         override fun onAdFailedToLoad(error: LoadAdError) {
-          Log.w(TAG, "Pause Banner Ad failed to load ($currentUnit): ${error.message} (code ${error.code})")
-          if (!hasFallenBack && AdConfig.autoFallbackToTestOnNoFill && currentUnit != AdConfig.TEST_BANNER_AD_ID) {
-            hasFallenBack = true
-            currentUnit = AdConfig.TEST_BANNER_AD_ID
-            this@apply.adUnitId = currentUnit
-            Log.i(TAG, "Cascading Pause Banner to Google Test Banner unit: $currentUnit")
+          Log.w(TAG, "Pause Banner Ad failed to load ($unitId): ${error.message} (code ${error.code})")
+          isPauseAdLoaded = false
+          isPauseAdReadyState.value = false
+          isPauseAdLoading = false
+          lastPauseAdFailTime = SystemClock.elapsedRealtime()
+
+          if (AdConfig.autoFallbackToTestOnNoFill && unitId != AdConfig.TEST_BANNER_AD_ID) {
+            Log.i(TAG, "Cascading Pause Banner to Google Test Banner unit: ${AdConfig.TEST_BANNER_AD_ID}")
             post {
-              loadAd(AdRequest.Builder().build())
+              cachedPauseAdView?.destroy()
+              cachedPauseAdView = null
+              val fallbackAdView = createPauseAdViewInstance(context, AdConfig.TEST_BANNER_AD_ID)
+              cachedPauseAdView = fallbackAdView
+              isPauseAdLoading = true
+              fallbackAdView.loadAd(AdRequest.Builder().build())
             }
-          } else {
-            isPauseAdLoaded = false
-            isPauseAdReadyState.value = false
-            isPauseAdLoading = false
-            lastPauseAdFailTime = SystemClock.elapsedRealtime()
           }
         }
       }

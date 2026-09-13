@@ -8,7 +8,9 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Gravity
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -46,10 +48,11 @@ private const val TAG = "BannerAdView"
 /**
  * Robust Google AdMob Banner Ad Composable.
  * Features:
- * - Direct AndroidView instantiation (no leaked/destroyed references).
- * - Automatic Live-to-Test cascading fallback if live ad returns NO_FILL or error.
+ * - FrameLayout container hosting AdView instances.
+ * - Ad unit ID is set strictly ONCE per AdView (preventing IllegalStateException).
+ * - Automatic Live-to-Test cascading fallback with fresh AdView instantiation.
  * - Proper Android lifecycle awareness (pause/resume/destroy).
- * - Clean UI presentation.
+ * - Zero height when ad is not loaded, smooth expand on load.
  */
 @Composable
 fun RealAdmobBanner(
@@ -59,10 +62,10 @@ fun RealAdmobBanner(
 ) {
   val lifecycleOwner = LocalLifecycleOwner.current
   var isAdLoaded by remember { mutableStateOf(false) }
-  var adViewInstance by remember { mutableStateOf<AdView?>(null) }
+  var activeAdView by remember { mutableStateOf<AdView?>(null) }
 
-  DisposableEffect(lifecycleOwner, adViewInstance) {
-    val adView = adViewInstance
+  DisposableEffect(lifecycleOwner, activeAdView) {
+    val adView = activeAdView
     if (adView == null) return@DisposableEffect onDispose {}
 
     val observer = LifecycleEventObserver { _, event ->
@@ -107,10 +110,10 @@ fun RealAdmobBanner(
           .padding(vertical = 4.dp),
         contentAlignment = Alignment.Center,
       ) {
-        AndroidView(
+        AndroidView<FrameLayout>(
           modifier = Modifier.wrapContentSize(),
           factory = { context ->
-            createBannerAdView(
+            createBannerContainer(
               context = context,
               initialAdUnitId = adUnitId,
               onLoaded = {
@@ -121,13 +124,17 @@ fun RealAdmobBanner(
                 isAdLoaded = false
                 onAdLoadedStateChanged?.invoke(false)
               },
-              onAdViewCreated = { adView ->
-                adViewInstance = adView
+              onActiveAdViewChanged = { adView ->
+                activeAdView = adView
               },
             )
           },
-          onRelease = { adView ->
-            adView.destroy()
+          onRelease = { container: FrameLayout ->
+            for (i in 0 until container.childCount) {
+              (container.getChildAt(i) as? AdView)?.destroy()
+            }
+            container.removeAllViews()
+            activeAdView = null
           },
         )
       }
@@ -135,38 +142,48 @@ fun RealAdmobBanner(
   }
 }
 
-private fun createBannerAdView(
+private fun createBannerContainer(
   context: Context,
   initialAdUnitId: String,
   onLoaded: () -> Unit,
   onFailed: () -> Unit,
-  onAdViewCreated: (AdView) -> Unit,
-): AdView {
-  val mainHandler = Handler(Looper.getMainLooper())
-  var activeAdUnit = initialAdUnitId
-  var hasFallenBackToTest = false
-  var retryCount = 0
-
-  return AdView(context).apply {
+  onActiveAdViewChanged: (AdView) -> Unit,
+): FrameLayout {
+  val container = FrameLayout(context).apply {
     layoutParams = ViewGroup.LayoutParams(
       ViewGroup.LayoutParams.WRAP_CONTENT,
       ViewGroup.LayoutParams.WRAP_CONTENT,
     )
-    setAdSize(AdSize.BANNER)
-    this.adUnitId = initialAdUnitId
-    onAdViewCreated(this)
+  }
 
-    fun loadAdForUnit(unitId: String) {
-      activeAdUnit = unitId
-      this.adUnitId = unitId
-      Log.d(TAG, "Requesting banner ad for unit: $unitId")
-      val request = AdRequest.Builder().build()
-      this.loadAd(request)
+  val mainHandler = Handler(Looper.getMainLooper())
+  var hasFallenBackToTest = false
+  var retryCount = 0
+
+  fun loadBanner(unitId: String, isFallback: Boolean) {
+    // 1. Destroy and remove existing AdView from container
+    for (i in 0 until container.childCount) {
+      (container.getChildAt(i) as? AdView)?.destroy()
+    }
+    container.removeAllViews()
+
+    // 2. Create fresh AdView instance (Ad unit ID can only be set ONCE per AdView)
+    val adView = AdView(context).apply {
+      layoutParams = FrameLayout.LayoutParams(
+        FrameLayout.LayoutParams.WRAP_CONTENT,
+        FrameLayout.LayoutParams.WRAP_CONTENT,
+        Gravity.CENTER,
+      )
+      setAdSize(AdSize.BANNER)
+      this.adUnitId = unitId // Set strictly once on this fresh AdView instance!
     }
 
-    this.adListener = object : AdListener() {
+    onActiveAdViewChanged(adView)
+    container.addView(adView)
+
+    adView.adListener = object : AdListener() {
       override fun onAdLoaded() {
-        Log.d(TAG, "Banner ad loaded successfully with unit: $activeAdUnit")
+        Log.d(TAG, "Banner ad loaded successfully with unit: $unitId")
         retryCount = 0
         onLoaded()
       }
@@ -174,13 +191,13 @@ private fun createBannerAdView(
       override fun onAdFailedToLoad(error: LoadAdError) {
         Log.w(
           TAG,
-          "Banner ad failed to load ($activeAdUnit): ${error.message} (code ${error.code})",
+          "Banner ad failed to load ($unitId): ${error.message} (code ${error.code})",
         )
-        // Fallback to official Google Test ad unit if live unit has no fill or error
         if (
           !hasFallenBackToTest &&
+          !isFallback &&
           AdConfig.autoFallbackToTestOnNoFill &&
-          activeAdUnit != AdConfig.TEST_BANNER_AD_ID
+          unitId != AdConfig.TEST_BANNER_AD_ID
         ) {
           hasFallenBackToTest = true
           Log.i(
@@ -188,21 +205,25 @@ private fun createBannerAdView(
             "Cascading to Google Test Banner unit: ${AdConfig.TEST_BANNER_AD_ID}",
           )
           mainHandler.post {
-            loadAdForUnit(AdConfig.TEST_BANNER_AD_ID)
+            loadBanner(AdConfig.TEST_BANNER_AD_ID, isFallback = true)
           }
         } else {
           onFailed()
           retryCount++
           val delayMs = (15_000L * retryCount).coerceAtMost(120_000L)
           mainHandler.postDelayed({
-            loadAdForUnit(activeAdUnit)
+            loadBanner(unitId, isFallback)
           }, delayMs)
         }
       }
     }
 
-    loadAdForUnit(initialAdUnitId)
+    Log.d(TAG, "Requesting banner ad for unit: $unitId")
+    adView.loadAd(AdRequest.Builder().build())
   }
+
+  loadBanner(initialAdUnitId, isFallback = false)
+  return container
 }
 
 @Composable
