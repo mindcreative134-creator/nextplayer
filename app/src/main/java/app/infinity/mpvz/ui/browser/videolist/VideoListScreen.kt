@@ -1301,6 +1301,10 @@ internal fun VideoListContent(
                       thumbnailHeightPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
                     )
                   }
+
+                  if (index == 4 && videosWithInfo.size >= 6 && !selectionManager.isInSelectionMode) {
+                    app.infinity.mpvz.ads.NativeAdCard()
+                  }
                 }
               }
 

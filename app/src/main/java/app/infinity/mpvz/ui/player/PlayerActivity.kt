@@ -226,6 +226,7 @@ class PlayerActivity :
    * `intent` isn't safely readable this early (before `onCreate`/`attach`).
    */
   private var isSecureFolderLaunch = false
+  private var playerOpenedTimestamp: Long = 0L
 
   // ==================== Dependency Injection ====================
 
@@ -1097,6 +1098,7 @@ class PlayerActivity :
     viewModelHostAttached = true
     viewModel.onMpvCoreInitialized()
     MediaPlaybackService.createNotificationChannel(this)
+    playerOpenedTimestamp = android.os.SystemClock.elapsedRealtime()
     setupAudio()
     setupBackPressHandler()
     setupVideoAmbientBackground()
@@ -1439,7 +1441,12 @@ class PlayerActivity :
         BackgroundPlaybackStartResult.Blocked -> {
           isUserFinishing = true
           viewModel.setNativeEngineActive(false)
-          app.infinity.mpvz.ads.AdmobManager.showInterstitialOnExit(this) {
+          val watchDuration = android.os.SystemClock.elapsedRealtime() - playerOpenedTimestamp
+          if (watchDuration >= app.infinity.mpvz.ads.AdConfig.INTERSTITIAL_MIN_WATCH_TIME_MS) {
+            app.infinity.mpvz.ads.AdmobManager.showInterstitialOnExit(this) {
+              finish()
+            }
+          } else {
             finish()
           }
         }
@@ -1449,7 +1456,12 @@ class PlayerActivity :
 
     isUserFinishing = true
     viewModel.setNativeEngineActive(false)
-    app.infinity.mpvz.ads.AdmobManager.showInterstitialOnExit(this) {
+    val watchDuration = android.os.SystemClock.elapsedRealtime() - playerOpenedTimestamp
+    if (watchDuration >= app.infinity.mpvz.ads.AdConfig.INTERSTITIAL_MIN_WATCH_TIME_MS) {
+      app.infinity.mpvz.ads.AdmobManager.showInterstitialOnExit(this) {
+        finish()
+      }
+    } else {
       finish()
     }
   }

@@ -415,6 +415,9 @@ object NetworkStreamingScreen : Screen {
             }
           }
           HorizontalDivider()
+          if (!isSearching) {
+            app.infinity.mpvz.ads.HomeBannerAdCard()
+          }
         }
       },
       floatingActionButton = {

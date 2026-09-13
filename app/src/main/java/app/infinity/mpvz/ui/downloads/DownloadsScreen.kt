@@ -169,6 +169,10 @@ object DownloadsScreen : Screen {
           )
         }
 
+        item(key = "downloads_banner_ad") {
+          app.infinity.mpvz.ads.HomeBannerAdCard()
+        }
+
         if (downloads.isEmpty() && ytdlpJobs.isEmpty()) {
           item(key = "empty") {
             EmptyState(

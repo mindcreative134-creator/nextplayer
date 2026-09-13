@@ -16,6 +16,22 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -182,6 +198,83 @@ object ExtraFeaturesScreen : Screen {
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 3.dp),
               )
             }
+          }
+
+          item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+          }
+          item {
+            PreferenceSectionHeader(
+              title = "Support NextPlayer",
+              modifier = Modifier.padding(top = 4.dp),
+            )
+          }
+          item {
+            val context = LocalContext.current
+            Surface(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+              shape = RoundedCornerShape(16.dp),
+              color = MaterialTheme.colorScheme.surfaceContainerHigh,
+              tonalElevation = 2.dp,
+            ) {
+              Column(
+                modifier = Modifier.padding(16.dp),
+              ) {
+                Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                ) {
+                  Icon(
+                    imageVector = Icons.RoundedFilled.Favorite,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                  )
+                  Spacer(modifier = Modifier.width(12.dp))
+                  Text(
+                    text = "Support Development",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                  )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                  text = "Watch a short video ad to support ongoing open-source development, improvements, and server maintenance for NextPlayer.",
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                  onClick = {
+                    val act = context as? Activity
+                    if (act != null) {
+                      app.infinity.mpvz.ads.AdmobManager.showRewardedAd(
+                        activity = act,
+                        onUserEarnedReward = {
+                          Toast.makeText(
+                            context,
+                            "Thank you for supporting NextPlayer! ❤️",
+                            Toast.LENGTH_LONG,
+                          ).show()
+                        },
+                      )
+                    }
+                  },
+                  modifier = Modifier.fillMaxWidth(),
+                ) {
+                  Icon(
+                    imageVector = Icons.RoundedFilled.PlayCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                  )
+                  Spacer(modifier = Modifier.width(8.dp))
+                  Text("Watch Short Video to Support")
+                }
+              }
+            }
+          }
+          item {
+            app.infinity.mpvz.ads.NativeAdCard()
           }
         }
       }

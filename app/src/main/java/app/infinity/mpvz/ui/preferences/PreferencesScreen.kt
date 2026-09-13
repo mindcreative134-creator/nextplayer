@@ -189,6 +189,12 @@ object PreferencesScreen : Screen {
             onItemClick = { destination -> onScreenSelected(destination.screen) },
           )
         }
+
+        item {
+          app.infinity.mpvz.ads.NativeAdCard(
+            modifier = Modifier.padding(top = 12.dp),
+          )
+        }
       }
     }
   }

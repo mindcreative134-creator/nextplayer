@@ -45,6 +45,7 @@ object AdmobManager {
     private set
   private var appOpenLoadTime: Long = 0
   private var lastAppOpenFailTime: Long = 0
+  private var lastAppOpenShowTime: Long = 0L
   private var coldStartActivityRef: WeakReference<Activity>? = null
   private var appLaunchTimestamp: Long = 0
 
@@ -170,6 +171,18 @@ object AdmobManager {
       return
     }
 
+    val now = SystemClock.elapsedRealtime()
+    // Enforce 3-minute cooldown between App Open ads to avoid annoying user on fast app switching
+    if (lastAppOpenShowTime > 0 && (now - lastAppOpenShowTime < AdConfig.APP_OPEN_COOLDOWN_MS)) {
+      onComplete()
+      return
+    }
+    // Also suppress App Open if an interstitial was displayed in the last 60 seconds
+    if (lastInterstitialShowTime > 0 && (now - lastInterstitialShowTime < 60_000L)) {
+      onComplete()
+      return
+    }
+
     val ad = appOpenAd
     if (ad == null || !isAppOpenAdAvailable()) {
       val elapsedSinceLaunch = SystemClock.elapsedRealtime() - appLaunchTimestamp
@@ -217,6 +230,7 @@ object AdmobManager {
 
       try {
         isShowingAppOpenAd = true
+        lastAppOpenShowTime = SystemClock.elapsedRealtime()
         ad.show(activity)
       } catch (e: Exception) {
         Log.w(TAG, "App Open Ad could not show: ${e.message}")
@@ -508,6 +522,8 @@ object AdmobManager {
     )
   }
 
+  fun isRewardedAdReady(): Boolean = rewardedAd != null
+
   fun showRewardedAd(
     activity: Activity,
     onUserEarnedReward: () -> Unit = {},
@@ -534,9 +550,16 @@ object AdmobManager {
           Log.d(TAG, "Rewarded Ad showing")
         }
       }
-      ad.show(activity) {
-        Log.d(TAG, "User earned reward from Rewarded Ad")
-        onUserEarnedReward()
+      try {
+        ad.show(activity) {
+          Log.d(TAG, "User earned reward from Rewarded Ad")
+          onUserEarnedReward()
+        }
+      } catch (e: Exception) {
+        Log.w(TAG, "Failed to show Rewarded Ad", e)
+        rewardedAd = null
+        loadRewardedAd(activity.applicationContext)
+        onDismissed()
       }
     } else {
       loadRewardedAd(activity.applicationContext)

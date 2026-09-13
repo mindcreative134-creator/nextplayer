@@ -93,6 +93,12 @@ object AdConfig {
   /** Minimum time between two interstitial shows (60 seconds for comfortable test & user experience). */
   const val INTERSTITIAL_COOLDOWN_MS = 60 * 1000L
 
+  /** Minimum playback watch time required before showing an exit interstitial (prevents ads on accidental mis-clicks). */
+  const val INTERSTITIAL_MIN_WATCH_TIME_MS = 15_000L // 15 seconds
+
+  /** Minimum time between two App Open ad shows (3 minutes) — prevents annoying users on brief app switching. */
+  const val APP_OPEN_COOLDOWN_MS = 3 * 60 * 1000L // 3 minutes
+
   /** Show interstitial on exit after 1 video exit. Resets after each show. */
   const val INTERSTITIAL_MIN_EXITS_BEFORE_SHOW = 1
 
