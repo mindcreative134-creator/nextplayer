@@ -771,112 +771,128 @@ fun FileSystemBrowserScreen(path: String? = null) {
       }
   ) { padding ->
       Box(modifier = Modifier.padding(padding)) {
-        if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted) {
-            if (isSearching) {
-              // Show search results
-              FileSystemSearchContent(
-                listState = listState, // Use the main listState for FAB tracking
-                gridState = gridState,
-                searchQuery = searchQuery,
-                searchResults = searchResults,
-                isLoading = isSearchLoading,
-                videoFilesWithPlayback = videoFilesWithPlayback,
-                newVideoIds = newVideoIds,
-                showSubtitleIndicator = showSubtitleIndicator,
-                isAtRoot = isAtRoot,
-                navigationBarHeight = navigationBarHeight,
-                isFabVisible = isFabVisible, // Pass FAB visibility state
-                onVideoClick = { video ->
-                  MediaUtils.playFile(video, context, "search")
-                },
-                onFolderClick = { folder ->
-                  backstack.add(FileSystemDirectoryScreen(folder.path))
-                  isSearching = false
-                  searchQuery = ""
-                },
-                modifier = Modifier,
-              )
-            } else {
-              FileSystemBrowserContent(
-                listState = listState,
-                gridState = gridState,
-                items = items,
-                videoFilesWithPlayback = videoFilesWithPlayback,
-                newVideoIds = newVideoIds,
-                watchedVideoIds = watchedVideoIds,
-                isLoading = isLoading && items.isEmpty(),
-                isRefreshing = isRefreshing,
-                error = error,
-                isAtRoot = isAtRoot,
-                breadcrumbs = breadcrumbs,
-                playlistMode = playlistMode,
-                itemsWereDeletedOrMoved = itemsWereDeletedOrMoved,
-                showSubtitleIndicator = showSubtitleIndicator,
-                navigationBarHeight = navigationBarHeight,
-                onRefresh = { viewModel.refresh() },
-                onFolderClick = { folder ->
-                  if (isInSelectionMode) {
-                    selectionManager.toggle(folder)
-                  } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+          if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted && !isInSelectionMode && !isSearching) {
+            app.infinity.mpvz.ads.HomeBannerAdCard()
+          }
+          Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted) {
+              if (isSearching) {
+                // Show search results
+                FileSystemSearchContent(
+                  listState = listState, // Use the main listState for FAB tracking
+                  gridState = gridState,
+                  searchQuery = searchQuery,
+                  searchResults = searchResults,
+                  isLoading = isSearchLoading,
+                  videoFilesWithPlayback = videoFilesWithPlayback,
+                  newVideoIds = newVideoIds,
+                  showSubtitleIndicator = showSubtitleIndicator,
+                  isAtRoot = isAtRoot,
+                  navigationBarHeight = navigationBarHeight,
+                  isFabVisible = isFabVisible, // Pass FAB visibility state
+                  onVideoClick = { video ->
+                    MediaUtils.playFile(video, context, "search")
+                  },
+                  onFolderClick = { folder ->
                     backstack.add(FileSystemDirectoryScreen(folder.path))
-                  }
-                },
-                onFolderLongClick = { folder ->
-                  selectionManager.handleLongClick(folder)
-                },
-                onVideoClick = { videoFile ->
-                  val video = videoFile.video
-                  if (isInSelectionMode) {
-                    selectionManager.toggle(videoFile)
-                  } else {
-                    // If playlist mode is enabled, play all videos in current folder starting from clicked one
-                    if (playlistMode) {
-                      val allVideos = videos
-                      val startIndex = allVideos.indexOfFirst { it.id == video.id }
-                      if (startIndex >= 0) {
-                        if (allVideos.size == 1) {
-                          // Single video - play normally
-                          MediaUtils.playFile(video, context)
+                    isSearching = false
+                    searchQuery = ""
+                  },
+                  modifier = Modifier,
+                )
+              } else {
+                // Show file browser
+                FileSystemBrowserContent(
+                  listState = listState,
+                  gridState = gridState,
+                  items = items,
+                  videoFilesWithPlayback = videoFilesWithPlayback,
+                  newVideoIds = newVideoIds,
+                  watchedVideoIds = watchedVideoIds,
+                  isLoading = isLoading && items.isEmpty(),
+                  isRefreshing = isRefreshing,
+                  error = error,
+                  isAtRoot = isAtRoot,
+                  breadcrumbs = breadcrumbs,
+                  playlistMode = playlistMode,
+                  itemsWereDeletedOrMoved = itemsWereDeletedOrMoved,
+                  showSubtitleIndicator = showSubtitleIndicator,
+                  navigationBarHeight = navigationBarHeight,
+                  onRefresh = { viewModel.refresh() },
+                  onFolderClick = { folder ->
+                    if (isInSelectionMode) {
+                      selectionManager.toggle(folder)
+                    } else {
+                      val openFolder: () -> Unit = {
+                        backstack.add(FileSystemDirectoryScreen(folder.path))
+                      }
+                      val act = context as? android.app.Activity
+                      if (act != null) {
+                        app.infinity.mpvz.ads.AdmobManager.showInterstitialOnFolderOpen(act, openFolder)
+                      } else {
+                        openFolder()
+                      }
+                    }
+                  },
+                  onFolderLongClick = { folder ->
+                    selectionManager.handleLongClick(folder)
+                  },
+                  onVideoClick = { videoFile ->
+                    val video = videoFile.video
+                    if (isInSelectionMode) {
+                      selectionManager.toggle(videoFile)
+                    } else {
+                      // If playlist mode is enabled, play all videos in current folder starting from clicked one
+                      if (playlistMode) {
+                        val allVideos = videos
+                        val startIndex = allVideos.indexOfFirst { it.id == video.id }
+                        if (startIndex >= 0) {
+                          if (allVideos.size == 1) {
+                            // Single video - play normally
+                            MediaUtils.playFile(video, context)
+                          } else {
+                            MediaUtils.playFiles(allVideos, context, startIndex)
+                          }
                         } else {
-                          MediaUtils.playFiles(allVideos, context, startIndex)
+                          MediaUtils.playFile(video, context)
                         }
                       } else {
                         MediaUtils.playFile(video, context)
                       }
-                    } else {
-                      MediaUtils.playFile(video, context)
                     }
-                  }
+                  },
+                  onVideoLongClick = { videoFile ->
+                    selectionManager.handleLongClick(videoFile)
+                  },
+                  onWatchedChange = { videoFile, watched -> viewModel.setWatched(videoFile.video, watched) },
+                  onRename = { video -> swipeRenameVideo = video },
+                  onDelete = { video -> swipeDeleteVideo = video },
+                  onBreadcrumbClick = { component ->
+                    // Navigate to the breadcrumb by popping until we reach it
+                    // or pushing if it's a new path
+                    backstack.add(FileSystemDirectoryScreen(component.fullPath))
+                  },
+                  selectionManager = selectionManager,
+                  modifier = Modifier,
+                  isInSelectionMode = isInSelectionMode,
+                )
+              }
+            } else if (isPermissionSetupCompleted) {
+              app.infinity.mpvz.ui.browser.states.StoragePermissionPrompt(
+                onRequestPermission = { permissionState.launchPermissionRequest() },
+              )
+            } else {
+              PermissionDeniedState(
+                onRequestPermission = { permissionState.launchPermissionRequest() },
+                onNext = {
+                  isPermissionSetupCompleted = true
+                  viewModel.refresh()
                 },
-                onVideoLongClick = { videoFile ->
-                  selectionManager.handleLongClick(videoFile)
-                },
-                onWatchedChange = { videoFile, watched -> viewModel.setWatched(videoFile.video, watched) },
-                onRename = { video -> swipeRenameVideo = video },
-                onDelete = { video -> swipeDeleteVideo = video },
-                onBreadcrumbClick = { component ->
-                  // Navigate to the breadcrumb by popping until we reach it
-                  // or pushing if it's a new path
-                  backstack.add(FileSystemDirectoryScreen(component.fullPath))
-                },
-                selectionManager = selectionManager,
                 modifier = Modifier,
-                isInSelectionMode = isInSelectionMode,
               )
             }
-        } else if (isPermissionSetupCompleted) {
-          app.infinity.mpvz.ui.browser.states.StoragePermissionPrompt(
-            onRequestPermission = { permissionState.launchPermissionRequest() },
-          )
-        } else {
-          PermissionDeniedState(
-            onRequestPermission = { permissionState.launchPermissionRequest() },
-            onNext = {
-              isPermissionSetupCompleted = true
-              viewModel.refresh()
-            },
-            modifier = Modifier,
-          )
+          }
         }
 
         FabScrollHelper.FabScrim(

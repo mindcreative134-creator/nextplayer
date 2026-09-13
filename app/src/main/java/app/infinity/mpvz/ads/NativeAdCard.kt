@@ -47,20 +47,27 @@ fun NativeAdCard(
 ) {
   val context = LocalContext.current
   var nativeAdInstance by remember { mutableStateOf<NativeAd?>(null) }
+  val isDisposed = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
 
   LaunchedEffect(adUnitId) {
+    isDisposed.set(false)
     AdmobManager.loadNativeAd(
       context = context,
       adUnitId = adUnitId,
       onLoaded = { ad ->
-        nativeAdInstance?.destroy()
-        nativeAdInstance = ad
+        if (isDisposed.get()) {
+          ad.destroy()
+        } else {
+          nativeAdInstance?.destroy()
+          nativeAdInstance = ad
+        }
       },
     )
   }
 
   DisposableEffect(Unit) {
     onDispose {
+      isDisposed.set(true)
       nativeAdInstance?.destroy()
       nativeAdInstance = null
     }

@@ -250,7 +250,6 @@ class MainActivity : AppCompatActivity() {
 
     app.infinity.mpvz.ads.AdmobManager.loadAppOpenAd(this)
     app.infinity.mpvz.ads.AdmobManager.loadInterstitialAd(this)
-    app.infinity.mpvz.ads.AdmobManager.showAppOpenAdIfAvailable(this)
 
     pipHelper = MPVPipHelper(
       activity = this,

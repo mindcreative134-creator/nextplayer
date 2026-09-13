@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -1186,46 +1187,69 @@ internal fun VideoListContent(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
               ) {
-                items(
-                  count = videosWithInfo.size,
-                  key = { index -> videosWithInfo[index].video.stableListKey },
-                  contentType = { "video_item" },
-                ) { index ->
-                  val videoWithInfo = videosWithInfo[index]
-                  val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
+                val adIndex = 4
+                val showNativeAd = videosWithInfo.size >= 4 && !selectionManager.isInSelectionMode
 
-                  SwipeableVideoActions(
-                    itemKey = videoWithInfo.video.path,
-                    enabled = !selectionManager.isInSelectionMode && onWatchedChange != null,
-                    isWatched = videoWithInfo.isWatched,
-                    onWatchedChange = { watched -> onWatchedChange?.invoke(videoWithInfo.video, watched) },
-                    onRename = { onRename?.invoke(videoWithInfo.video) },
-                    onDelete = { onDelete?.invoke(videoWithInfo.video) },
-                  ) {
-                    VideoCard(
-                      video = videoWithInfo.video,
-                      progressPercentage = videoWithInfo.progressPercentage,
-                      isRecentlyPlayed = isRecentlyPlayed,
-                      isSelected = selectionManager.isSelected(videoWithInfo.video),
-                      isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
+                items(
+                  count = if (showNativeAd) videosWithInfo.size + 1 else videosWithInfo.size,
+                  key = { index ->
+                    if (showNativeAd && index == adIndex) "native_ad_video_grid"
+                    else {
+                      val videoIdx = if (showNativeAd && index > adIndex) index - 1 else index
+                      videosWithInfo[videoIdx].video.stableListKey
+                    }
+                  },
+                  contentType = { index ->
+                    if (showNativeAd && index == adIndex) "native_ad" else "video_item"
+                  },
+                  span = { index ->
+                    if (showNativeAd && index == adIndex) {
+                      GridItemSpan(maxLineSpan)
+                    } else {
+                      GridItemSpan(1)
+                    }
+                  },
+                ) { index ->
+                  if (showNativeAd && index == adIndex) {
+                    app.infinity.mpvz.ads.NativeAdCard()
+                  } else {
+                    val videoIdx = if (showNativeAd && index > adIndex) index - 1 else index
+                    val videoWithInfo = videosWithInfo[videoIdx]
+                    val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
+
+                    SwipeableVideoActions(
+                      itemKey = videoWithInfo.video.path,
+                      enabled = !selectionManager.isInSelectionMode && onWatchedChange != null,
                       isWatched = videoWithInfo.isWatched,
-                      onClick = { onVideoClick(videoWithInfo.video) },
-                      onLongClick = { onVideoLongClick(videoWithInfo.video) },
-                      onThumbClick =
-                        if (tapThumbnailToSelect) {
-                          { selectionManager.toggle(videoWithInfo.video) }
-                        } else {
-                          { onVideoClick(videoWithInfo.video) }
-                        },
-                      isGridMode = true,
-                      gridColumns = columns,
-                      thumbnailWidthPx = thumbWidthPx,
-                      thumbnailHeightPx = thumbHeightPx,
-                      showSubtitleIndicator = showSubtitleIndicator,
-                      allowThumbnailGeneration = false,
-                      allowThumbnailLoading = allowThumbnailLoading,
-                      uiConfig = videoCardUiConfig,
-                    )
+                      onWatchedChange = { watched -> onWatchedChange?.invoke(videoWithInfo.video, watched) },
+                      onRename = { onRename?.invoke(videoWithInfo.video) },
+                      onDelete = { onDelete?.invoke(videoWithInfo.video) },
+                    ) {
+                      VideoCard(
+                        video = videoWithInfo.video,
+                        progressPercentage = videoWithInfo.progressPercentage,
+                        isRecentlyPlayed = isRecentlyPlayed,
+                        isSelected = selectionManager.isSelected(videoWithInfo.video),
+                        isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
+                        isWatched = videoWithInfo.isWatched,
+                        onClick = { onVideoClick(videoWithInfo.video) },
+                        onLongClick = { onVideoLongClick(videoWithInfo.video) },
+                        onThumbClick =
+                          if (tapThumbnailToSelect) {
+                            { selectionManager.toggle(videoWithInfo.video) }
+                          } else {
+                            { onVideoClick(videoWithInfo.video) }
+                          },
+                        isGridMode = true,
+                        gridColumns = columns,
+                        thumbnailWidthPx = thumbWidthPx,
+                        thumbnailHeightPx = thumbHeightPx,
+                        showSubtitleIndicator = showSubtitleIndicator,
+                        allowThumbnailGeneration = false,
+                        allowThumbnailLoading = allowThumbnailLoading,
+                        uiConfig = videoCardUiConfig,
+                      )
+                    }
                   }
                 }
               }
@@ -1261,49 +1285,61 @@ internal fun VideoListContent(
                     bottom = bottomPadding,
                   ),
               ) {
+                val adIndex = 3
+                val showNativeAd = videosWithInfo.size >= 4 && !selectionManager.isInSelectionMode
+
                 items(
-                  count = videosWithInfo.size,
-                  key = { index -> videosWithInfo[index].video.stableListKey },
-                  contentType = { "video_item" },
+                  count = if (showNativeAd) videosWithInfo.size + 1 else videosWithInfo.size,
+                  key = { index ->
+                    if (showNativeAd && index == adIndex) "native_ad_video_list"
+                    else {
+                      val videoIdx = if (showNativeAd && index > adIndex) index - 1 else index
+                      videosWithInfo[videoIdx].video.stableListKey
+                    }
+                  },
+                  contentType = { index ->
+                    if (showNativeAd && index == adIndex) "native_ad" else "video_item"
+                  },
                 ) { index ->
-                  val videoWithInfo = videosWithInfo[index]
-                  val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
-
-                  SwipeableVideoActions(
-                    itemKey = videoWithInfo.video.path,
-                    enabled = !selectionManager.isInSelectionMode && onWatchedChange != null,
-                    isWatched = videoWithInfo.isWatched,
-                    onWatchedChange = { watched -> onWatchedChange?.invoke(videoWithInfo.video, watched) },
-                    onRename = { onRename?.invoke(videoWithInfo.video) },
-                    onDelete = { onDelete?.invoke(videoWithInfo.video) },
-                  ) {
-                    VideoCard(
-                      video = videoWithInfo.video,
-                      progressPercentage = videoWithInfo.progressPercentage,
-                      isRecentlyPlayed = isRecentlyPlayed,
-                      isSelected = selectionManager.isSelected(videoWithInfo.video),
-                      isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
-                      isWatched = videoWithInfo.isWatched,
-                      onClick = { onVideoClick(videoWithInfo.video) },
-                      onLongClick = { onVideoLongClick(videoWithInfo.video) },
-                      onThumbClick =
-                        if (tapThumbnailToSelect) {
-                          { selectionManager.toggle(videoWithInfo.video) }
-                        } else {
-                          { onVideoClick(videoWithInfo.video) }
-                        },
-                      isGridMode = false,
-                      showSubtitleIndicator = showSubtitleIndicator,
-                      allowThumbnailGeneration = false,
-                      allowThumbnailLoading = allowThumbnailLoading,
-                      uiConfig = videoCardUiConfig,
-                      thumbnailWidthPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
-                      thumbnailHeightPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
-                    )
-                  }
-
-                  if (index == 4 && videosWithInfo.size >= 6 && !selectionManager.isInSelectionMode) {
+                  if (showNativeAd && index == adIndex) {
                     app.infinity.mpvz.ads.NativeAdCard()
+                  } else {
+                    val videoIdx = if (showNativeAd && index > adIndex) index - 1 else index
+                    val videoWithInfo = videosWithInfo[videoIdx]
+                    val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
+
+                    SwipeableVideoActions(
+                      itemKey = videoWithInfo.video.path,
+                      enabled = !selectionManager.isInSelectionMode && onWatchedChange != null,
+                      isWatched = videoWithInfo.isWatched,
+                      onWatchedChange = { watched -> onWatchedChange?.invoke(videoWithInfo.video, watched) },
+                      onRename = { onRename?.invoke(videoWithInfo.video) },
+                      onDelete = { onDelete?.invoke(videoWithInfo.video) },
+                    ) {
+                      VideoCard(
+                        video = videoWithInfo.video,
+                        progressPercentage = videoWithInfo.progressPercentage,
+                        isRecentlyPlayed = isRecentlyPlayed,
+                        isSelected = selectionManager.isSelected(videoWithInfo.video),
+                        isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
+                        isWatched = videoWithInfo.isWatched,
+                        onClick = { onVideoClick(videoWithInfo.video) },
+                        onLongClick = { onVideoLongClick(videoWithInfo.video) },
+                        onThumbClick =
+                          if (tapThumbnailToSelect) {
+                            { selectionManager.toggle(videoWithInfo.video) }
+                          } else {
+                            { onVideoClick(videoWithInfo.video) }
+                          },
+                        isGridMode = false,
+                        showSubtitleIndicator = showSubtitleIndicator,
+                        allowThumbnailGeneration = false,
+                        allowThumbnailLoading = allowThumbnailLoading,
+                        uiConfig = videoCardUiConfig,
+                        thumbnailWidthPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
+                        thumbnailHeightPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
+                      )
+                    }
                   }
                 }
               }
