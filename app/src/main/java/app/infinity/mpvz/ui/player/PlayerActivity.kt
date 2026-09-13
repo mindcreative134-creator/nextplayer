@@ -3089,6 +3089,12 @@ class PlayerActivity :
     val syncPreferences = getSharedPreferences(MPV_ASSET_SYNC_PREFERENCES, MODE_PRIVATE)
     val currentSelection = currentUserMpvAssetSelection()
     val storedSelection = syncPreferences.getString(USER_MPV_ASSET_SELECTION, null)
+
+    ensureBaseMpvDirectoriesExist()
+    if (!File(filesDir, "mpv.conf").isFile || !File(filesDir, "input.conf").isFile) {
+      copyMPVConfigFromPreferences()
+    }
+
     val cacheReady = hasLaunchReadyUserMpvAssetCache()
     val canAdoptExistingCache =
       storedSelection == null &&
@@ -3102,9 +3108,17 @@ class PlayerActivity :
       return
     }
 
-    syncFromUserMpvDirectory()
-    rememberUserMpvAssetSelection(syncPreferences)
-    deferredUserMpvAssetRefreshStarted.set(true)
+    // Never block UI thread with synchronous SAF directory scans during startup!
+    // Schedule full directory sync on Dispatchers.IO asynchronously.
+    scheduleDeferredUserMpvAssetRefresh(promptSync = !cacheReady)
+  }
+
+  private fun ensureBaseMpvDirectoriesExist() {
+    File(filesDir, "scripts").mkdirs()
+    File(filesDir, "script-modules").mkdirs()
+    File(filesDir, "script-opts").mkdirs()
+    File(filesDir, "shaders").mkdirs()
+    File(filesDir, "fonts").mkdirs()
   }
 
   private fun currentUserMpvAssetSelection(): String {
@@ -3455,7 +3469,7 @@ class PlayerActivity :
       }
   }
 
-  private fun scheduleDeferredUserMpvAssetRefresh() {
+  private fun scheduleDeferredUserMpvAssetRefresh(promptSync: Boolean = false) {
     if (advancedPreferences.mpvConfStorageUri.get().isBlank()) return
     if (!deferredUserMpvAssetRefreshStarted.compareAndSet(false, true)) return
 
@@ -3463,7 +3477,7 @@ class PlayerActivity :
       lifecycleScope.launch(Dispatchers.IO) {
         var completed = false
         try {
-          delay(DEFERRED_MPV_ASSET_SYNC_DELAY_MS)
+          delay(if (promptSync) 1_000L else DEFERRED_MPV_ASSET_SYNC_DELAY_MS)
           if (!ownsPlaybackSession() || isFinishing || isDestroyed) return@launch
           deferredFontSyncJob?.join()
           syncFromUserMpvDirectory()

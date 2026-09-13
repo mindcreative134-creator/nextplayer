@@ -84,6 +84,7 @@ import app.infinity.mpvz.ui.player.getSubtitleHitboxBounds
 import app.infinity.mpvz.ui.player.getTrackSelectionId
 import app.infinity.mpvz.ui.theme.AppMotion
 import app.infinity.mpvz.ui.theme.playerRippleConfiguration
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -569,7 +570,7 @@ fun GestureHandler(
                       isSubtitleHoldActive = true
                       longPressTriggeredDuringTouch = true
                       haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                      originalSubtitlePosition = PlaybackSession.getPropertyInt("sub-pos") ?: subtitlesPreferences.subPos.get()
+                      originalSubtitlePosition = PlaybackSession.propInt["sub-pos"].value ?: subtitlesPreferences.subPos.get()
                       lastSubtitlePosition = originalSubtitlePosition
                       viewModel.playerUpdate.update {
                         PlayerUpdates.ShowText(
@@ -592,11 +593,13 @@ fun GestureHandler(
                       val targetSpeed = nearestHoldSpeedPreset(multipleSpeedGesture)
                       val steps = 5
                       val stepDelay = 16L // ~one frame per step
-                      for (i in 1..steps) {
-                        val t = i.toFloat() / steps
-                        val intermediateSpeed = startSpeed + (targetSpeed - startSpeed) * t
-                        PlaybackSession.setPropertyFloat("speed", intermediateSpeed)
-                        if (i < steps) delay(stepDelay)
+                      coroutineScope.launch(Dispatchers.Default) {
+                        for (i in 1..steps) {
+                          val t = i.toFloat() / steps
+                          val intermediateSpeed = startSpeed + (targetSpeed - startSpeed) * t
+                          PlaybackSession.setPropertyFloat("speed", intermediateSpeed)
+                          if (i < steps) delay(stepDelay)
+                        }
                       }
 
                       isDynamicSpeedControlActive = true
@@ -796,7 +799,9 @@ fun GestureHandler(
                             if (abs(lastAppliedSpeed - newSpeed) > 0.01f) {
                               haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                               lastAppliedSpeed = newSpeed
-                              PlaybackSession.setPropertyFloat("speed", newSpeed)
+                              coroutineScope.launch(Dispatchers.Default) {
+                                PlaybackSession.setPropertyFloat("speed", newSpeed)
+                              }
                               viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(newSpeed) }
                             }
                           }
@@ -958,11 +963,11 @@ fun GestureHandler(
               hasSwipedEnough = false
               if (!isSpeedLocked) {
                 // Ramp speed back down incrementally to avoid audio filter stutter
-                val currentSpeed = PlaybackSession.getPropertyFloat("speed") ?: multipleSpeedGesture
+                val currentSpeed = PlaybackSession.propFloat["speed"].value ?: multipleSpeedGesture
                 val targetSpeed = originalSpeed
                 val steps = 5
                 val stepDelay = 16L
-                coroutineScope.launch {
+                coroutineScope.launch(Dispatchers.Default) {
                   for (i in 1..steps) {
                     val t = i.toFloat() / steps
                     val intermediateSpeed = currentSpeed + (targetSpeed - currentSpeed) * t

@@ -138,7 +138,7 @@ object PlaybackSession : MPVLib.EventObserver {
     val generation: Long,
   )
 
-  private val nativeLock = ReentrantLock(true)
+  private val nativeLock = ReentrantLock(false)
   private val observers = CopyOnWriteArraySet<MPVLib.EventObserver>()
   private val _state = MutableStateFlow(PlaybackSessionState())
   private val _queue = MutableStateFlow(PlaybackQueueState())

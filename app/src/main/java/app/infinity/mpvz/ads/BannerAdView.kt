@@ -93,49 +93,43 @@ fun RealAdmobBanner(
     },
     contentAlignment = Alignment.Center,
   ) {
-    AnimatedVisibility(
-      visible = isAdLoaded,
-      enter = fadeIn(),
-      exit = fadeOut(),
+    Surface(
+      modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentHeight()
+        .clip(RoundedCornerShape(8.dp)),
+      color = Color(0x0DFFFFFF),
+      tonalElevation = 1.dp,
     ) {
-      Surface(
+      Box(
         modifier = Modifier
           .fillMaxWidth()
-          .wrapContentHeight()
-          .clip(RoundedCornerShape(8.dp)),
-        color = Color(0x0DFFFFFF),
-        tonalElevation = 1.dp,
+          .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center,
       ) {
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-          contentAlignment = Alignment.Center,
-        ) {
-          AndroidView(
-            modifier = Modifier.wrapContentSize(),
-            factory = { context ->
-              createBannerAdView(
-                context = context,
-                initialAdUnitId = adUnitId,
-                onLoaded = {
-                  isAdLoaded = true
-                  onAdLoadedStateChanged?.invoke(true)
-                },
-                onFailed = {
-                  isAdLoaded = false
-                  onAdLoadedStateChanged?.invoke(false)
-                },
-                onAdViewCreated = { adView ->
-                  adViewInstance = adView
-                },
-              )
-            },
-            onRelease = { adView ->
-              adView.destroy()
-            },
-          )
-        }
+        AndroidView(
+          modifier = Modifier.wrapContentSize(),
+          factory = { context ->
+            createBannerAdView(
+              context = context,
+              initialAdUnitId = adUnitId,
+              onLoaded = {
+                isAdLoaded = true
+                onAdLoadedStateChanged?.invoke(true)
+              },
+              onFailed = {
+                isAdLoaded = false
+                onAdLoadedStateChanged?.invoke(false)
+              },
+              onAdViewCreated = { adView ->
+                adViewInstance = adView
+              },
+            )
+          },
+          onRelease = { adView ->
+            adView.destroy()
+          },
+        )
       }
     }
   }

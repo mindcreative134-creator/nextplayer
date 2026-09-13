@@ -283,7 +283,6 @@ fun PlayerControls(
   val mpvPlaybackSpeed by PlaybackSession.propFloat["speed"].collectAsState()
   val seekbarDuration = if (preciseDuration > 0) preciseDuration else duration?.toFloat() ?: 0f
   val seekState by viewModel.seekState.collectAsState()
-  val brightness by viewModel.currentBrightness.collectAsState()
   val doubleTapSeekAmount = seekState.amount
   val showDoubleTapOvals by playerPreferences.showDoubleTapOvals.collectAsState()
   val showSeekTime by playerPreferences.showSeekTimeWhileSeeking.collectAsState()
@@ -687,16 +686,7 @@ fun PlayerControls(
       speedMultiplier = animSpeed,
       animationState = videoOpenAnimState,
     )
-    if (brightness < 0) {
-      Box(
-        modifier =
-          Modifier
-            .fillMaxSize()
-            .graphicsLayer { alpha = -brightness }
-            .background(Color.Black)
-            .zIndex(0f),
-      )
-    }
+    SubZeroBrightnessOverlay(viewModel = viewModel)
     // Statistics are a video overlay only. Keep them out of the audio/visualizer composition even
     // when the previous video left the persisted statistics page enabled.
     if (!useAudioPlayer && statisticsPage in 1..6) {
@@ -756,9 +746,6 @@ fun PlayerControls(
           val (customLeftButtonsRef, customRightButtonsRef) = createRefs()
           val customButtonsPortraitRef = createRef()
 
-          val volume by viewModel.currentVolume.collectAsState()
-          val volumePercent by viewModel.currentVolumePercent.collectAsState()
-          val mpvVolume by PlaybackSession.propInt["volume"].collectAsState()
           val swapVolumeAndBrightness by playerPreferences.swapVolumeAndBrightness.collectAsState()
           // Overlay visibility — Group 1
           val showVolumeGestureOverlay by playerPreferences.showVolumeGestureOverlay.collectAsState()
@@ -842,7 +829,10 @@ fun PlayerControls(
                 top.linkTo(parent.top, spacing.larger)
                 bottom.linkTo(parent.bottom, spacing.extraLarge)
               },
-          ) { BrightnessSlider(brightness, 0f..1f, 0f..0.75f) }
+          ) {
+            val brightness by viewModel.currentBrightness.collectAsState()
+            BrightnessSlider(brightness, 0f..1f, 0f..0.75f)
+          }
 
           AnimatedVisibility(
             isVolumeSliderShown && showVolumeGestureOverlay,
@@ -869,6 +859,9 @@ fun PlayerControls(
                 bottom.linkTo(parent.bottom, spacing.extraLarge)
               },
           ) {
+            val volume by viewModel.currentVolume.collectAsState()
+            val volumePercent by viewModel.currentVolumePercent.collectAsState()
+            val mpvVolume by PlaybackSession.propInt["volume"].collectAsState()
             val boostCap by audioPreferences.volumeBoostCap.collectAsState()
             val displayVolumeAsPercentage by playerPreferences.displayVolumeAsPercentage.collectAsState()
 
@@ -2845,6 +2838,21 @@ private fun OutlinedLabeled(
     Text(
       text = annotated,
       style = labelStyle,
+    )
+  }
+}
+
+@Composable
+private fun SubZeroBrightnessOverlay(viewModel: PlayerViewModel) {
+  val brightness by viewModel.currentBrightness.collectAsState()
+  if (brightness < 0) {
+    Box(
+      modifier =
+        Modifier
+          .fillMaxSize()
+          .graphicsLayer { alpha = -brightness }
+          .background(Color.Black)
+          .zIndex(0f),
     )
   }
 }

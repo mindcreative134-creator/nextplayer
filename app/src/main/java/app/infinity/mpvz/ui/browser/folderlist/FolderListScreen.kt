@@ -864,18 +864,26 @@ object FolderListScreen : Screen {
                       searchResults = searchResults,
                       navigationBarHeight = navigationBarHeight,
                       onFolderClick = { folder ->
-                        if (isDualPaneActive) {
-                          selectedFolderBucketId = folder.bucketId
-                          selectedFolderName = folder.name
-                          if (!embedded) {
-                            internalIsSearching = false
-                            internalSearchQuery = ""
+                        val openFolder: () -> Unit = {
+                          if (isDualPaneActive) {
+                            selectedFolderBucketId = folder.bucketId
+                            selectedFolderName = folder.name
+                            if (!embedded) {
+                              internalIsSearching = false
+                              internalSearchQuery = ""
+                            }
+                          } else {
+                            backstack.add(
+                              app.infinity.mpvz.ui.browser.videolist
+                                .VideoListScreen(folder.bucketId, folder.name, isAudio = audioOnly),
+                            )
                           }
+                        }
+                        val act = context as? android.app.Activity
+                        if (act != null) {
+                          app.infinity.mpvz.ads.AdmobManager.showInterstitialOnFolderOpen(act, openFolder)
                         } else {
-                          backstack.add(
-                            app.infinity.mpvz.ui.browser.videolist
-                              .VideoListScreen(folder.bucketId, folder.name, isAudio = audioOnly),
-                          )
+                          openFolder()
                         }
                       },
                       onVideoClick = { video ->
@@ -907,14 +915,22 @@ object FolderListScreen : Screen {
                     if (selectionManager.isInSelectionMode) {
                       selectionManager.toggle(folder)
                     } else {
-                      if (isDualPaneActive) {
-                        selectedFolderBucketId = folder.bucketId
-                        selectedFolderName = folder.name
+                      val openFolder: () -> Unit = {
+                        if (isDualPaneActive) {
+                          selectedFolderBucketId = folder.bucketId
+                          selectedFolderName = folder.name
+                        } else {
+                          backstack.add(
+                            app.infinity.mpvz.ui.browser.videolist
+                              .VideoListScreen(folder.bucketId, folder.name, isAudio = audioOnly),
+                          )
+                        }
+                      }
+                      val act = context as? android.app.Activity
+                      if (act != null) {
+                        app.infinity.mpvz.ads.AdmobManager.showInterstitialOnFolderOpen(act, openFolder)
                       } else {
-                        backstack.add(
-                          app.infinity.mpvz.ui.browser.videolist
-                            .VideoListScreen(folder.bucketId, folder.name, isAudio = audioOnly),
-                        )
+                        openFolder()
                       }
                     }
                   },
@@ -1377,38 +1393,62 @@ private fun GridContent(
       horizontalArrangement = Arrangement.spacedBy(2.dp),
       verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-      items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
-        val folder = folders[index]
-        val isRecentlyPlayed = recentlyPlayedParent == folder.path
-        val newCount = newCountByBucketId[folder.bucketId] ?: 0
+      val adIndex = 4
+      val showNativeAd = folders.size >= 4 && !selectionManager.isInSelectionMode
 
-        val isActive = isDualPaneActive && folder.bucketId == selectedFolderBucketId
+      items(
+        count = if (showNativeAd) folders.size + 1 else folders.size,
+        key = { index ->
+          if (showNativeAd && index == adIndex) "native_ad_folder_grid"
+          else {
+            val folderIdx = if (showNativeAd && index > adIndex) index - 1 else index
+            folders[folderIdx].bucketId
+          }
+        },
+        span = { index ->
+          if (showNativeAd && index == adIndex) {
+            GridItemSpan(maxLineSpan)
+          } else {
+            GridItemSpan(1)
+          }
+        },
+      ) { index ->
+        if (showNativeAd && index == adIndex) {
+          app.infinity.mpvz.ads.NativeAdCard()
+        } else {
+          val folderIdx = if (showNativeAd && index > adIndex) index - 1 else index
+          val folder = folders[folderIdx]
+          val isRecentlyPlayed = recentlyPlayedParent == folder.path
+          val newCount = newCountByBucketId[folder.bucketId] ?: 0
 
-        FolderCard(
-          folder = folder,
-          isSelected = selectionManager.isSelected(folder),
-          isRecentlyPlayed = isRecentlyPlayed,
-          onClick = { onFolderClick(folder) },
-          onLongClick = { onFolderLongClick(folder) },
-          onThumbClick =
-            if (tapThumbnailToSelect) {
-              { selectionManager.toggle(folder) }
-            } else {
-              { onFolderClick(folder) }
-            },
-          newVideoCount = newCount,
-          isGridMode = true,
-          isPinned = folder.path in pinnedFolderPaths,
-          onPinClick =
-            if (!selectionManager.isInSelectionMode) {
-              { onTogglePin(folder) }
-            } else {
-              null
-            },
-          isDualPane = isDualPane,
-          isActive = isActive,
-          isAudioOnly = audioOnly,
-        )
+          val isActive = isDualPaneActive && folder.bucketId == selectedFolderBucketId
+
+          FolderCard(
+            folder = folder,
+            isSelected = selectionManager.isSelected(folder),
+            isRecentlyPlayed = isRecentlyPlayed,
+            onClick = { onFolderClick(folder) },
+            onLongClick = { onFolderLongClick(folder) },
+            onThumbClick =
+              if (tapThumbnailToSelect) {
+                { selectionManager.toggle(folder) }
+              } else {
+                { onFolderClick(folder) }
+              },
+            newVideoCount = newCount,
+            isGridMode = true,
+            isPinned = folder.path in pinnedFolderPaths,
+            onPinClick =
+              if (!selectionManager.isInSelectionMode) {
+                { onTogglePin(folder) }
+              } else {
+                null
+              },
+            isDualPane = isDualPane,
+            isActive = isActive,
+            isAudioOnly = audioOnly,
+          )
+        }
       }
     }
 
@@ -1468,56 +1508,71 @@ private fun ListContent(
           bottom = navigationBarHeight,
         ),
     ) {
-      items(folders, key = { it.bucketId }) { folder ->
-        val isRecentlyPlayed = recentlyPlayedParent == folder.path
-        val newCount = newCountByBucketId[folder.bucketId] ?: 0
+      val adIndex = 3
+      val showNativeAd = folders.size >= 4 && !selectionManager.isInSelectionMode
 
-        val isActive = isDualPaneActive && folder.bucketId == selectedFolderBucketId
+      items(count = if (showNativeAd) folders.size + 1 else folders.size, key = { index ->
+        if (showNativeAd && index == adIndex) "native_ad_folder_list"
+        else {
+          val folderIdx = if (showNativeAd && index > adIndex) index - 1 else index
+          folders[folderIdx].bucketId
+        }
+      }) { index ->
+        if (showNativeAd && index == adIndex) {
+          app.infinity.mpvz.ads.NativeAdCard()
+        } else {
+          val folderIdx = if (showNativeAd && index > adIndex) index - 1 else index
+          val folder = folders[folderIdx]
+          val isRecentlyPlayed = recentlyPlayedParent == folder.path
+          val newCount = newCountByBucketId[folder.bucketId] ?: 0
 
-        FolderCard(
-          folder = folder,
-          isSelected = selectionManager.isSelected(folder),
-          isRecentlyPlayed = isRecentlyPlayed,
-          onClick = { onFolderClick(folder) },
-          onLongClick = { onFolderLongClick(folder) },
-          onThumbClick =
-            if (tapThumbnailToSelect) {
-              { selectionManager.toggle(folder) }
-            } else {
-              { onFolderClick(folder) }
-            },
-          newVideoCount = newCount,
-          isGridMode = false,
-          isPinned = folder.path in pinnedFolderPaths,
-          onPinClick =
-            if (!selectionManager.isInSelectionMode) {
-              { onTogglePin(folder) }
-            } else {
-              null
-            },
-          customChipContent =
-            if (folder.path in pinnedFolderPaths) {
-              {
-                Text(
-                  androidx.compose.ui.res
-                    .stringResource(app.infinity.mpvz.R.string.ui_pinned),
-                  style = MaterialTheme.typography.labelSmall,
-                  modifier =
-                    Modifier
-                      .background(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        RoundedCornerShape(8.dp),
-                      ).padding(horizontal = 8.dp, vertical = 4.dp),
-                  color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-              }
-            } else {
-              null
-            },
-          isDualPane = isDualPaneActive && selectedFolderBucketId != null,
-          isActive = isActive,
-          isAudioOnly = audioOnly,
-        )
+          val isActive = isDualPaneActive && folder.bucketId == selectedFolderBucketId
+
+          FolderCard(
+            folder = folder,
+            isSelected = selectionManager.isSelected(folder),
+            isRecentlyPlayed = isRecentlyPlayed,
+            onClick = { onFolderClick(folder) },
+            onLongClick = { onFolderLongClick(folder) },
+            onThumbClick =
+              if (tapThumbnailToSelect) {
+                { selectionManager.toggle(folder) }
+              } else {
+                { onFolderClick(folder) }
+              },
+            newVideoCount = newCount,
+            isGridMode = false,
+            isPinned = folder.path in pinnedFolderPaths,
+            onPinClick =
+              if (!selectionManager.isInSelectionMode) {
+                { onTogglePin(folder) }
+              } else {
+                null
+              },
+            customChipContent =
+              if (folder.path in pinnedFolderPaths) {
+                {
+                  Text(
+                    androidx.compose.ui.res
+                      .stringResource(app.infinity.mpvz.R.string.ui_pinned),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier =
+                      Modifier
+                        .background(
+                          MaterialTheme.colorScheme.primaryContainer,
+                          RoundedCornerShape(8.dp),
+                        ).padding(horizontal = 8.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                  )
+                }
+              } else {
+                null
+              },
+            isDualPane = isDualPaneActive && selectedFolderBucketId != null,
+            isActive = isActive,
+            isAudioOnly = audioOnly,
+          )
+        }
       }
     }
 

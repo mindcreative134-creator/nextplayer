@@ -12,14 +12,9 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
--dontobfuscate
+# Preserve line number information for Play Console stack traces
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
 # Preserve all JNI native methods across the entire app and libraries
 -keepclasseswithmembernames class * {
@@ -124,4 +119,18 @@
 -keep class com.google.android.gms.ads.identifier.** { *; }
 -dontwarn com.google.android.gms.ads.**
 -dontwarn com.google.android.gms.ads.identifier.**
+
+# Kotlinx Serialization
+-dontwarn kotlinx.serialization.**
+-keepclassmembers class * {
+    *** Companion;
+}
+-keepclasseswithmembers class * {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+-keep @kotlinx.serialization.Serializable class * { *; }
+
 

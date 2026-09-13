@@ -55,6 +55,8 @@ object AdmobManager {
   private var lastInterstitialShowTime: Long = 0L
   private var lastInterstitialFailTime: Long = 0L
   private var videoExitsCounter = 0
+  private var folderOpensCounter = 0
+  private var lastFolderInterstitialShowTime = 0L
 
   // Pause Banner Ad State (preloaded and cached to prevent request storms)
   private var cachedPauseAdView: AdView? = null
@@ -637,6 +639,67 @@ object AdmobManager {
     } else {
       loadRewardedInterstitialAd(activity.applicationContext)
       onDismissed()
+    }
+  }
+
+  /**
+   * Shows an interstitial ad when a folder is opened from the folder list.
+   * Frequency capped: at least 90s cooldown between showings and triggers every 2nd folder click.
+   */
+  fun showInterstitialOnFolderOpen(activity: Activity, onFinished: () -> Unit) {
+    folderOpensCounter++
+    val now = SystemClock.elapsedRealtime()
+    val timeSinceLast = now - lastFolderInterstitialShowTime
+
+    val isCooldownElapsed = timeSinceLast >= 90_000L
+    val isFrequencyMet = folderOpensCounter >= 2 && isCooldownElapsed
+
+    val ad = interstitialAd
+    if (ad != null && isFrequencyMet) {
+      if (activity.isFinishing || activity.isDestroyed) {
+        onFinished()
+        return
+      }
+      val showBlock = {
+        if (!activity.isFinishing && !activity.isDestroyed) {
+          try {
+            ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+              override fun onAdDismissedFullScreenContent() {
+                Log.d(TAG, "Folder Open Interstitial dismissed")
+                interstitialAd = null
+                lastFolderInterstitialShowTime = SystemClock.elapsedRealtime()
+                lastInterstitialShowTime = SystemClock.elapsedRealtime()
+                folderOpensCounter = 0
+                loadInterstitialAd(activity.applicationContext)
+                onFinished()
+              }
+
+              override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                Log.w(TAG, "Folder Open Interstitial failed to show: ${adError.message}")
+                interstitialAd = null
+                loadInterstitialAd(activity.applicationContext)
+                onFinished()
+              }
+
+              override fun onAdShowedFullScreenContent() {
+                Log.d(TAG, "Folder Open Interstitial showing")
+              }
+            }
+            ad.show(activity)
+          } catch (e: Exception) {
+            Log.w(TAG, "Folder Open Interstitial could not show: ${e.message}")
+            interstitialAd = null
+            loadInterstitialAd(activity.applicationContext)
+            onFinished()
+          }
+        } else {
+          onFinished()
+        }
+      }
+      Handler(Looper.getMainLooper()).post { showBlock() }
+    } else {
+      loadInterstitialAd(activity.applicationContext)
+      onFinished()
     }
   }
 
