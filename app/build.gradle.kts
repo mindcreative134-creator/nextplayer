@@ -34,6 +34,7 @@ plugins {
   alias(libs.plugins.ksp)
   alias(libs.plugins.room)
   alias(libs.plugins.ktlint)
+  alias(libs.plugins.google.services)
 }
 
 android {
@@ -267,6 +268,8 @@ dependencies {
   implementation(libs.androidx.ui.graphics)
   implementation(libs.androidx.material3.android)
   implementation(libs.google.material)
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.firebase.analytics)
   implementation(libs.play.services.ads)
   implementation(libs.androidx.compose.material)
   implementation(libs.androidx.ui.tooling.preview)
