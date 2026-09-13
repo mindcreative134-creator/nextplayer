@@ -46,7 +46,7 @@ android {
     applicationId = "com.nextplayer.pro"
     minSdk = 26
     targetSdk = 36
-    versionCode = 550
+    versionCode = 551
     versionName = "1.1.9"
 
     vectorDrawables {
