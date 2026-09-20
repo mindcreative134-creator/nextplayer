@@ -222,7 +222,7 @@ object NetworkStreamingScreen : Screen {
             val parsedUri = android.net.Uri.parse(rawUrl)
             viewModel.recordSubmittedLink(rawUrl)
             val resolvedLocalPath = parsedUri.resolveLocalPath(context)
-            val targetUri = if (!resolvedLocalPath.isNullOrBlank() && File(resolvedLocalPath).canRead()) {
+            val targetUri = if (!resolvedLocalPath.isNullOrBlank() && File(resolvedLocalPath).exists()) {
               android.net.Uri.fromFile(File(resolvedLocalPath))
             } else {
               parsedUri.resolveDownloadsUri(context) ?: parsedUri

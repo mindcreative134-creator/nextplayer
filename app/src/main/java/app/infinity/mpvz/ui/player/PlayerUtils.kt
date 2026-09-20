@@ -151,7 +151,7 @@ internal fun Uri.resolveDownloadsUri(context: Context): Uri? {
     runCatching {
       context.contentResolver.openFileDescriptor(this, "r")?.use { pfd ->
         val path = Utils.findRealPath(pfd.fd)
-        if (!path.isNullOrBlank() && File(path).canRead()) {
+        if (!path.isNullOrBlank() && File(path).exists()) {
           Log.d(TAG, "resolveDownloadsUri via file descriptor: $path")
           return Uri.fromFile(File(path))
         }
@@ -171,7 +171,7 @@ internal fun Uri.resolveDownloadsUri(context: Context): Uri? {
           val dataIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
           if (dataIdx >= 0) {
             val dataPath = cursor.getString(dataIdx)
-            if (!dataPath.isNullOrBlank() && File(dataPath).canRead()) {
+            if (!dataPath.isNullOrBlank() && File(dataPath).exists()) {
               Log.d(TAG, "resolveDownloadsUri via MediaStore DATA: $dataPath")
               return Uri.fromFile(File(dataPath))
             }
@@ -216,7 +216,7 @@ internal fun Uri.resolveDownloadsUri(context: Context): Uri? {
           if (sizeIdx >= 0) size = cursor.getLong(sizeIdx)
         }
       }
-      if (dataPath != null && File(dataPath).canRead()) {
+      if (dataPath != null && File(dataPath).exists()) {
         Uri.fromFile(File(dataPath))
       } else {
         findInMediaCollection(context, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, dataPath, displayName, size)

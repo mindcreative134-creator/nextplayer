@@ -287,7 +287,7 @@ object MediaUtils {
       if (launchSource.isHistoryResumeLaunch() && localPath != null) {
         val isAudio = File(localPath).extension.lowercase() in FileTypeUtils.AUDIO_EXTENSIONS
         resolveMediaStoreUri(context, localPath, isAudio) ?: uri
-      } else if (localPath != null && uri.scheme.equals("content", ignoreCase = true) && File(localPath).canRead()) {
+      } else if (localPath != null && uri.scheme.equals("content", ignoreCase = true) && File(localPath).exists()) {
         Uri.fromFile(File(localPath))
       } else {
         uri

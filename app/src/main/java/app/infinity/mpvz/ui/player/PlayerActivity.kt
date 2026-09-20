@@ -4158,7 +4158,7 @@ class PlayerActivity :
   private fun parsePathFromIntent(intent: Intent): String? =
     intent
       .getStringExtra("local_media_path")
-      ?.takeIf { path -> File(path).canRead() }
+      ?.takeIf { path -> File(path).exists() }
       ?: when (intent.action) {
         // A value returned here is retained in PlaybackItem. Never detach an fd at this stage:
         // fd:// handles are consumed by their first mpv load and cannot survive replay/reopen.
@@ -4521,7 +4521,7 @@ class PlayerActivity :
       // Unresolvable URIs stay content:// and get a fresh descriptor per load in PlaybackSession.
       val target = uri.toUri().resolveDownloadsUri(this) ?: uri.toUri()
       val localPath = target.openContentFd(this, allowFdFallback = false)
-      if (localPath != null && File(localPath).canRead()) {
+      if (!localPath.isNullOrBlank() && !localPath.startsWith("fd://") && File(localPath).exists()) {
         localPath
       } else {
         target.toString()

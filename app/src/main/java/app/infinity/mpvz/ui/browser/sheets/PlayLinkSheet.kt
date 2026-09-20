@@ -108,7 +108,7 @@ fun PlayLinkSheet(
           } else {
             null
           }
-          val effectiveSource = if (directPath != null && File(directPath).canRead()) {
+          val effectiveSource = if (directPath != null && File(directPath).exists()) {
             directPath
           } else {
             resolvedUri?.toString() ?: playableSource

@@ -439,7 +439,7 @@ class RecentlyPlayedViewModel(
         }
 
       val file = File(filePath)
-      if (file.exists() && file.canRead()) {
+      if (file.exists()) {
         video
       } else {
         runCatching { recentlyPlayedRepository.deleteByFilePath(video.path) }
