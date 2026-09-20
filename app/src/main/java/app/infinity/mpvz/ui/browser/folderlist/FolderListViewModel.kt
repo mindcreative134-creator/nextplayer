@@ -106,15 +106,15 @@ class FolderListViewModel(
   }
 
   init {
-    // Load cached folders instantly for immediate display
-    val hasCachedData = loadCachedFolders()
+    viewModelScope.launch(Dispatchers.IO) {
+      // Load cached folders off the UI thread for immediate display without blocking frame render
+      val hasCachedData = loadCachedFolders()
 
-    // If no cached data (first launch), scan immediately. Otherwise defer to not slow down app launch
-    if (!hasCachedData) {
-      loadVideoFolders()
-    } else {
-      viewModelScope.launch(Dispatchers.IO) {
-        kotlinx.coroutines.delay(2000) // Wait 2 seconds before refreshing
+      // If no cached data (first launch), scan immediately. Otherwise defer to not slow down app launch
+      if (!hasCachedData) {
+        loadVideoFolders()
+      } else {
+        delay(2000) // Wait 2 seconds before refreshing
         loadVideoFolders()
       }
     }
@@ -273,6 +273,9 @@ class FolderListViewModel(
           val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
           val watchedThreshold = browserPreferences.watchedThreshold.get()
           val currentTime = System.currentTimeMillis()
+          val playbackStatesMap = runCatching {
+            playbackStateRepository.getAllPlaybackStates().associateBy { it.mediaTitle }
+          }.getOrDefault(emptyMap())
 
           val foldersWithCounts =
             folders.map { folder ->
@@ -291,10 +294,10 @@ class FolderListViewModel(
 
                     // A video counts as "unplayed" until it has been watched to the
                     // configured threshold. Threshold 0 ("Infinitely") keeps it unplayed.
-                    val playbackState = playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forLocalPath(video.path))
-                      ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri(video.uri.toString()))
-                      ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri(video.path))
-                      ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri("file://${video.path}"))
+                    val playbackState = playbackStatesMap[PlaybackIdentity.forLocalPath(video.path)]
+                      ?: playbackStatesMap[PlaybackIdentity.forUri(video.uri.toString())]
+                      ?: playbackStatesMap[PlaybackIdentity.forUri(video.path)]
+                      ?: playbackStatesMap[PlaybackIdentity.forUri("file://${video.path}")]
                     val isUnplayed =
                       if (playbackState != null && video.duration > 0) {
                         val durationSeconds = video.duration / 1000

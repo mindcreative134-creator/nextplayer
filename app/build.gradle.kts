@@ -46,8 +46,8 @@ android {
     applicationId = "com.nextplayer.pro"
     minSdk = 26
     targetSdk = 36
-    versionCode = 551
-    versionName = "1.1.9"
+    versionCode = 552
+    versionName = "1.2.0"
 
     vectorDrawables {
       useSupportLibrary = true
@@ -125,8 +125,28 @@ android {
     }
   }
 
+  signingConfigs {
+    create("release") {
+      val keyStorePath = project.findProperty("signing.storeFile")?.toString()
+        ?: localProperties.getProperty("signing.storeFile")
+      if (keyStorePath != null && file(keyStorePath).exists()) {
+        storeFile = file(keyStorePath)
+        storePassword = project.findProperty("signing.storePassword")?.toString()
+          ?: localProperties.getProperty("signing.storePassword")
+        keyAlias = project.findProperty("signing.keyAlias")?.toString()
+          ?: localProperties.getProperty("signing.keyAlias")
+        keyPassword = project.findProperty("signing.keyPassword")?.toString()
+          ?: localProperties.getProperty("signing.keyPassword")
+      } else {
+        // Fallback to debug keystore so release APKs built locally are always signed and installable on test devices
+        initWith(getByName("debug"))
+      }
+    }
+  }
+
   buildTypes {
     named("release") {
+      signingConfig = signingConfigs.getByName("release")
       buildConfigField("boolean", "IS_PREVIEW_BUILD", "false")
       isMinifyEnabled = true
       isShrinkResources = true
@@ -141,7 +161,7 @@ android {
 
     create("preview") {
       initWith(getByName("release"))
-      signingConfig = null
+      signingConfig = signingConfigs.getByName("release")
       buildConfigField("boolean", "IS_PREVIEW_BUILD", "true")
       versionNameSuffix = "-beta.r${getCommitCount()}"
     }
@@ -304,6 +324,11 @@ dependencies {
   implementation(libs.kotlinx.immutable.collections)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.okhttp)
+  implementation(libs.retrofit)
+  implementation(libs.retrofit.kotlinx.serialization)
+  implementation(libs.coil.compose)
+  implementation(libs.coil.network.okhttp)
+  implementation(libs.androidx.security.crypto)
   implementation(libs.jsoup)
   implementation(libs.androidx.media3.common)
   implementation(libs.androidx.media3.exoplayer)

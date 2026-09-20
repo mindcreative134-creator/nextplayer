@@ -107,11 +107,15 @@ fun NativeAdCard(
               .padding(10.dp),
             factory = { ctx ->
               val nativeAdView = NativeAdView(ctx)
+              nativeAdView.tag = ad
               populateNativeAdView(ad, nativeAdView)
               nativeAdView
             },
             update = { view ->
-              populateNativeAdView(ad, view)
+              if (view.tag != ad) {
+                view.tag = ad
+                populateNativeAdView(ad, view)
+              }
             },
           )
         }

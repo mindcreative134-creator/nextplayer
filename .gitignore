@@ -107,6 +107,7 @@ keystore.properties
 *.tmp
 *.temp
 *.swp
+*.mp4
 
 # =========================
 # Firebase / Google services (optional)

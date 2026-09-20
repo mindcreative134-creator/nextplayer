@@ -633,6 +633,7 @@ object PlaybackSession : MPVLib.EventObserver {
     positionRestoreOverride: PlaybackPositionRestoreOverride? = null,
     initialPositionSeconds: Double? = null,
     flattenEditions: Boolean = false,
+    bypassYtdl: Boolean = false,
     commit: ((() -> Long) -> Long)? = null,
   ): Long {
     val resolved = resolvePlayableUri(item)
@@ -649,6 +650,7 @@ object PlaybackSession : MPVLib.EventObserver {
               positionRestoreOverride = positionRestoreOverride,
               initialPositionSeconds = initialPositionSeconds,
               flattenEditions = flattenEditions,
+              bypassYtdl = bypassYtdl,
             )
           if (generation >= 0L) {
             previous = activeNetworkStream
@@ -684,6 +686,7 @@ object PlaybackSession : MPVLib.EventObserver {
     positionRestoreOverride: PlaybackPositionRestoreOverride? = null,
     initialPositionSeconds: Double? = null,
     flattenEditions: Boolean = false,
+    bypassYtdl: Boolean = false,
   ): Long =
     withCore(default = -1L) {
       if (_state.value.phase == PlaybackPhase.STOPPING) return@withCore -1L
@@ -750,7 +753,12 @@ object PlaybackSession : MPVLib.EventObserver {
           if (flattenEditions && !MpvConfigOverridePolicy.isOwnedByMpvConf("flatten-editions")) {
             add("flatten-editions=yes")
           }
+          // For direct media URLs (mp4/m3u8/mpd/etc.) bypass ytdl_hook so MPV uses its own
+          // native demuxers. Without this, ytdl_hook intercepts every http(s) URL and calls
+          // yt-dlp — if yt-dlp is absent or the URL is a tokenized CDN stream, playback fails.
+          if (bypassYtdl) add("ytdl=no")
         }.joinToString(",")
+      Log.d(TAG, "[ONLINE_PLAYBACK] loadfile uri=${playableUri.take(120)} bypassYtdl=$bypassYtdl options=$loadOptions")
       MPVLib.command("loadfile", playableUri, "replace", "-1", loadOptions)
       propBoolean.emit("pause", holdForPositionRestore || desiredPaused)
       generation
@@ -1565,8 +1573,13 @@ object PlaybackSession : MPVLib.EventObserver {
     releaseActiveNetworkStream()
     // Keep MediaStore content URIs for Media3. ContentDataSource can obtain the provider's
     // descriptor directly; converting this back to file:// reintroduces the slow FUSE path.
-    if (item.playableUri.startsWith("content://")) return item.playableUri
-    if (item.originalUri.startsWith("content://")) return item.originalUri
+    val context = applicationContext
+    val candidate = sequenceOf(item.playableUri, item.originalUri).firstOrNull { it.startsWith("content://") }
+    if (candidate != null) {
+      val parsed = Uri.parse(candidate)
+      val resolved = context?.let { parsed.resolveDownloadsUri(it) } ?: parsed
+      return resolved.toString()
+    }
     val resolved = resolvePlayableUri(item)
     nativeLock.withLock { activeNetworkStream = resolved.registration }
     return resolved.uri
@@ -1610,29 +1623,42 @@ object PlaybackSession : MPVLib.EventObserver {
     // of queue items or persisted sessions must re-open a fresh descriptor from the content URI.
     if (item.playableUri.startsWith("fd://") && item.originalUri.startsWith("content://")) {
       val context = applicationContext ?: error("Application context is unavailable for content URI playback")
+      val parsed = Uri.parse(NetworkPlaybackUri.normalize(item.originalUri))
+      val targetUri = parsed.resolveDownloadsUri(context) ?: parsed
       val refreshedUri =
-        Uri.parse(NetworkPlaybackUri.normalize(item.originalUri)).openContentFd(context)
+        targetUri.openContentFd(context)
           ?: error("Unable to reopen content URI for playback")
       return ResolvedPlayable(refreshedUri)
     }
 
-    // Resolve a local path for native integrations that cannot consume content:// directly.
-    // Native Media3 uses resolvePlayableUriForNative above and deliberately retains content://.
+    // Resolve content:// URIs to a playable path or fd:// — matches mpvRx behavior.
+    // resolveLocalPath() is intentionally skipped here because it uses allowFdFallback=false
+    // and will return null for scoped-storage files that are only accessible via ContentResolver.
+    // openContentFd() handles the complete resolution chain: real path → fd:// → raw content URI.
     val context = applicationContext
     if (context != null) {
-      val localPath = sequenceOf(item.playableUri, item.originalUri)
-        .mapNotNull { candidate ->
-          if (!candidate.startsWith("content://")) return@mapNotNull null
-          Uri.parse(candidate).resolveLocalPath(context)
+      val contentCandidate =
+        sequenceOf(item.playableUri, item.originalUri)
+          .firstOrNull { it.startsWith("content://") }
+      if (contentCandidate != null) {
+        val parsed = Uri.parse(NetworkPlaybackUri.normalize(contentCandidate))
+        // openContentFd resolves downloads URIs internally; skip the pre-call here to avoid
+        // consuming a fd in resolveDownloadsUri before tryFileDescriptorPath gets its turn.
+        val opened = parsed.openContentFd(context)
+        if (opened != null) {
+          Log.d(TAG, "Using openContentFd for content URI: $opened")
+          return ResolvedPlayable(opened)
         }
-        .firstOrNull()
-      if (localPath != null) {
-        Log.d(TAG, "Using direct local path for Native Media3: $localPath")
-        return ResolvedPlayable(localPath)
       }
     }
-    if (item.playableUri.startsWith("content://")) return ResolvedPlayable(item.playableUri)
-    if (item.originalUri.startsWith("content://")) return ResolvedPlayable(item.originalUri)
+    // Last-resort: hand the raw URI to MPV and let it attempt playback directly.
+    // This covers edge cases where openContentFd returned null (e.g. permission not yet granted).
+    if (item.playableUri.startsWith("content://")) {
+      return ResolvedPlayable(item.playableUri)
+    }
+    if (item.originalUri.startsWith("content://")) {
+      return ResolvedPlayable(item.originalUri)
+    }
     return ResolvedPlayable(item.playableUri)
   }
 

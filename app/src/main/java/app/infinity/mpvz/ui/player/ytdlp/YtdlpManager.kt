@@ -570,7 +570,7 @@ object YtdlpManager {
               add("ytdl_path=$ytdlBinaryPath")
               add("all_formats=$allFormats")
               add("force_all_formats=yes")
-              add("try_ytdl_first=yes")
+              add("try_ytdl_first=no")
               add("exclude=$DIRECT_MEDIA_EXCLUDE")
             }
           ytdlConf.writeText(confLines.joinToString("\n", postfix = "\n"))
@@ -591,7 +591,7 @@ object YtdlpManager {
     PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-ytdl_path=$ytdlBinaryPath")
     PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-all_formats=$allFormats")
     PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-force_all_formats=yes")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-try_ytdl_first=yes")
+    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-try_ytdl_first=no")
     // Skip yt-dlp for direct media/manifest URLs (.m3u8/.mpd/.mp4/.ts/...). Without this,
     // ytdl_hook intercepts every http(s) URL and routes it through yt-dlp's generic
     // extractor, which chokes on tokenized HLS/CDN links — so mpv never falls back to
@@ -632,7 +632,7 @@ object YtdlpManager {
       !options["ytdl_path"].isNullOrBlank() &&
       options["all_formats"] == "yes" &&
       options["force_all_formats"] == "yes" &&
-      options["try_ytdl_first"] == "yes" &&
+      (options["try_ytdl_first"] == "yes" || options["try_ytdl_first"] == "no") &&
       options["exclude"] == DIRECT_MEDIA_EXCLUDE
   }
 

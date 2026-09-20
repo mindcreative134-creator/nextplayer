@@ -39,7 +39,7 @@ class TorrentProxyServer(
 
   companion object {
     private const val TAG = "TorrentProxyServer"
-    private const val READ_AHEAD_BYTES = 16L * 1024L * 1024L
+    private const val READ_AHEAD_BYTES = 48L * 1024L * 1024L
     private const val PIECE_WAIT_TIMEOUT_MS = 120_000L
     private const val PIECE_POLL_INTERVAL_MS = 40L
   }
@@ -234,6 +234,10 @@ class TorrentProxyServer(
       val deadline = System.currentTimeMillis() + PIECE_WAIT_TIMEOUT_MS
 
       for (piece in first..last) {
+        if (!target.handle.havePiece(piece)) {
+          target.handle.piecePriority(piece, Priority.TOP_PRIORITY)
+          target.handle.setPieceDeadline(piece, 50)
+        }
         while (!target.handle.havePiece(piece)) {
           ensureActive()
           if (System.currentTimeMillis() >= deadline) throw IOException("Timed out waiting for torrent data")

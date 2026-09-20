@@ -11,6 +11,7 @@ package app.infinity.mpvz.ui.player
 
 import android.content.Context
 import android.os.Environment
+import java.io.File
 import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyCharacterMap
@@ -237,8 +238,20 @@ class MPVView(
     PlaybackSession.setOptionString("keep-open", "yes")
     PlaybackSession.setOptionString("input-default-bindings", "yes")
 
-    PlaybackSession.setOptionString("tls-verify", "yes")
-    PlaybackSession.setOptionString("tls-ca-file", "${context.filesDir.path}/cacert.pem")
+    val caFile = File(context.filesDir, "cacert.pem")
+    if (!caFile.exists() || caFile.length() == 0L) {
+      runCatching {
+        context.assets.open("cacert.pem").use { input ->
+          caFile.outputStream().use { output -> input.copyTo(output) }
+        }
+      }
+    }
+    if (caFile.exists() && caFile.length() > 0L) {
+      PlaybackSession.setOptionString("tls-verify", "yes")
+      PlaybackSession.setOptionString("tls-ca-file", caFile.absolutePath)
+    } else {
+      PlaybackSession.setOptionString("tls-verify", "no")
+    }
 
     val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
     screenshotDir.mkdirs()
@@ -251,51 +264,50 @@ class MPVView(
     PlaybackSession.setOptionString("speed", playerPreferences.defaultSpeed.get().toString())
     // Avoid forcing CPU-side film-grain synthesis globally; this can spike thermals on mobile SoCs.
     // Let mpv choose the safest path for the active decoder/backend.
-    PlaybackSession.setOptionString("vd-lavc-film-grain", "auto")
+    PlaybackSession.setOptionString("vd-lavc-film-grain", "no")
+    // Thermal & performance optimizations: hardware-assisted decoding speedup
+    PlaybackSession.setOptionString("vd-lavc-fast", "yes")
+    PlaybackSession.setOptionString("sws-fast", "yes")
+    // Multi-threaded decoding on all CPU cores for smooth playback when software fallback occurs
+    PlaybackSession.setOptionString("vd-lavc-threads", "0")
+    // Persistent shader cache to eliminate GPU compilation micro-stutter
+    val shaderCacheDir = File(context.cacheDir, "mpv_shaders").apply { mkdirs() }
+    PlaybackSession.setOptionString("gpu-shader-cache-dir", shaderCacheDir.absolutePath)
 
     // Streaming improvements
-    // Use adaptive HLS bitrate selection to avoid forcing the heaviest stream profile.
-    // This reduces thermal load and helps prevent jitter/rebuffering on long sessions.
     PlaybackSession.setOptionString("hls-bitrate", "no")
     PlaybackSession.setOptionString("http-allow-redirect", "yes")
     PlaybackSession.setOptionString("cookies", "yes")
     PlaybackSession.setOptionString("cookies-file", AndroidCookieJar.playbackCookieFile(context).absolutePath)
     // ── Optimized network caching & buffering ──
-    // Keep a deep cache with automatic pause on underrun so network playback remains smooth and never drops frames.
+    // Responsive caching with quick pause-recovery to eliminate micro-stutters and prevent heating.
     PlaybackSession.setOptionString("cache", "yes")
-    PlaybackSession.setOptionString("cache-secs", "300")
+    PlaybackSession.setOptionString("cache-secs", "150")
     PlaybackSession.setOptionString("cache-pause", "yes")
-    PlaybackSession.setOptionString("cache-pause-wait", "3")
+    PlaybackSession.setOptionString("cache-pause-wait", "1")
     PlaybackSession.setOptionString("cache-pause-initial", "no")
-    PlaybackSession.setOptionString("demuxer-max-bytes", "150M")
-    PlaybackSession.setOptionString("demuxer-max-back-bytes", "50M")
-    PlaybackSession.setOptionString("demuxer-readahead-secs", "60")
-    PlaybackSession.setOptionString("demuxer-lavf-probesize", "2000000")
-    PlaybackSession.setOptionString("demuxer-lavf-analyzeduration", "2")
-    PlaybackSession.setOptionString("audio-buffer", "1")
-    PlaybackSession.setOptionString("demuxer-lavf-buffersize", "2097152")
-    PlaybackSession.setOptionString("stream-buffer-size", "8192KiB")
+    PlaybackSession.setOptionString("demuxer-max-bytes", "100M")
+    PlaybackSession.setOptionString("demuxer-max-back-bytes", "30M")
+    PlaybackSession.setOptionString("demuxer-readahead-secs", "30")
+    PlaybackSession.setOptionString("demuxer-lavf-probesize", "1000000")
+    PlaybackSession.setOptionString("demuxer-lavf-analyzeduration", "1")
+    PlaybackSession.setOptionString("audio-buffer", "0.2")
+    PlaybackSession.setOptionString("demuxer-lavf-buffersize", "1048576")
+    PlaybackSession.setOptionString("stream-buffer-size", "4096KiB")
     PlaybackSession.setOptionString("network-timeout", "30")
     // Identify as a modern browser so CDNs and servers don't reject or throttle bare libmpv UA.
     PlaybackSession.setOptionString("user-agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/125.0.0.0 Mobile Safari/537.36")
 
     // Recover boundedly from transient HTTP/TLS disconnects, including non-seekable live inputs.
-    // Do not use reconnect_at_eof globally: a legitimate VOD EOF must still finish normally.
-    // Keep HTTP persistent connections alive across segments to avoid TCP/TLS handshake latency stalls.
-    // ── Reconnect aggressively on any transient network failure ──
-    // Increase retries and total delay so a brief cellular/Wi-Fi dropout doesn't abort playback.
     PlaybackSession.setOptionString(
       "demuxer-lavf-o",
       "reconnect=1,reconnect_on_network_error=1,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=25",
+        "reconnect_delay_max=2,reconnect_max_retries=3,reconnect_delay_total_max=10",
     )
-    // demuxer-lavf-o only reaches demuxer-internal opens (HLS/DASH segments). The primary http(s)
-    // URL is opened by stream_lavf, which reads stream-lavf-o. Reconnecting on 5xx recovers from server hiccups,
-    // but reconnecting on 4xx (404/403/410) hangs the demuxer in endless buffering stalls and causes ANRs.
     PlaybackSession.setOptionString(
       "stream-lavf-o",
       "reconnect=1,reconnect_on_network_error=1,reconnect_on_http_error=5xx,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=25," +
+        "reconnect_delay_max=2,reconnect_max_retries=3,reconnect_delay_total_max=10," +
         "http_persistent=1,multiple_requests=1",
     )
     // Drop only video-output-bound late frames when rendering cannot keep up.
@@ -351,13 +363,13 @@ class MPVView(
     // opted into config ownership for the NETWORK_BUFFERING category.
     if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.NETWORK_BUFFERING)) {
       PlaybackSession.setOptionString("cache", "yes")
-      PlaybackSession.setOptionString("cache-secs", "300")
+      PlaybackSession.setOptionString("cache-secs", "150")
       PlaybackSession.setOptionString("cache-pause", "yes")
-      PlaybackSession.setOptionString("cache-pause-wait", "3")
+      PlaybackSession.setOptionString("cache-pause-wait", "1")
       PlaybackSession.setOptionString("cache-pause-initial", "no")
-      PlaybackSession.setOptionString("demuxer-max-bytes", "150M")
-      PlaybackSession.setOptionString("demuxer-max-back-bytes", "50M")
-      PlaybackSession.setOptionString("demuxer-readahead-secs", "60")
+      PlaybackSession.setOptionString("demuxer-max-bytes", "100M")
+      PlaybackSession.setOptionString("demuxer-max-back-bytes", "30M")
+      PlaybackSession.setOptionString("demuxer-readahead-secs", "30")
       PlaybackSession.setOptionString("network-timeout", "30")
     }
   }

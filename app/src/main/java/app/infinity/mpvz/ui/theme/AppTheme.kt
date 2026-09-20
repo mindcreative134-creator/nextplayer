@@ -38,15 +38,14 @@ enum class AppTheme(
 ) {
   Default(
     titleRes = R.string.theme_default,
-    primaryLight = Color(0xFF794F81),
-    primaryDark = Color(0xFFE8B5EF),
-    secondaryLight = Color(0xFF6A596C),
-    secondaryDark = Color(0xFFD6C0D6),
-    tertiaryLight = Color(0xFF82524D),
-    tertiaryDark = Color(0xFFF5B7B0),
-    // Low-chroma lavender grey: comfortably bright without a pure-white canvas.
-    backgroundLight = Color(0xFFF7F5F8),
-    backgroundDark = Color(0xFF161217),
+    primaryLight = Color(0xFF4F6BFF),
+    primaryDark = Color(0xFFBAC3FF),
+    secondaryLight = Color(0xFF00668B),
+    secondaryDark = Color(0xFF7BD0FF),
+    tertiaryLight = Color(0xFF8B5000),
+    tertiaryDark = Color(0xFFFFB95F),
+    backgroundLight = Color(0xFFF8F9FF),
+    backgroundDark = Color(0xFF111318),
   ),
   Dynamic(
     titleRes = R.string.theme_dynamic,
@@ -465,6 +464,44 @@ enum class AppTheme(
    * Get the dark color scheme for this theme
    */
   fun getDarkColorScheme(): ColorScheme {
+    if (this == Default) {
+      return darkColorScheme(
+        primary = primaryDark,
+        onPrimary = Color(0xFF001F90),
+        primaryContainer = Color(0xFF7287FF),
+        onPrimaryContainer = Color(0xFF001A7F),
+        secondary = secondaryDark,
+        onSecondary = Color(0xFF00354A),
+        secondaryContainer = Color(0xFF00A6E0),
+        onSecondaryContainer = Color(0xFF00374D),
+        tertiary = tertiaryDark,
+        onTertiary = Color(0xFF472A00),
+        tertiaryContainer = Color(0xFFCA8100),
+        onTertiaryContainer = Color(0xFF3E2400),
+        error = Color(0xFFFFB4AB),
+        onError = Color(0xFF690005),
+        errorContainer = Color(0xFF93000A),
+        onErrorContainer = Color(0xFFFFDAD6),
+        background = backgroundDark,
+        onBackground = Color(0xFFE2E2E8),
+        surface = backgroundDark,
+        onSurface = Color(0xFFE2E2E8),
+        surfaceVariant = Color(0xFF333539),
+        onSurfaceVariant = Color(0xFFC5C5D8),
+        outline = Color(0xFF8E8FA1),
+        outlineVariant = Color(0xFF444655),
+        inverseSurface = Color(0xFFE2E2E8),
+        inverseOnSurface = Color(0xFF2F3035),
+        inversePrimary = Color(0xFF2D4CE2),
+        surfaceDim = Color(0xFF111318),
+        surfaceBright = Color(0xFF37393E),
+        surfaceContainerLowest = Color(0xFF0C0E12),
+        surfaceContainerLow = Color(0xFF1A1C20),
+        surfaceContainer = Color(0xFF1E2024),
+        surfaceContainerHigh = Color(0xFF282A2E),
+        surfaceContainerHighest = Color(0xFF333539),
+      )
+    }
     val primaryContainer = primaryLight.darken(0.2f)
     val secondaryContainer = secondaryLight.darken(0.2f)
     val tertiaryContainer = tertiaryLight.darken(0.2f)

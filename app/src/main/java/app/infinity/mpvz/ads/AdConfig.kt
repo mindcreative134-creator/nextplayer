@@ -41,10 +41,11 @@ object AdConfig {
   var useLiveAds: Boolean = true
 
   /**
-   * If true, whenever a live ad fails to load (e.g. newly created units with no fill yet),
-   * the system will immediately fallback to Google official test ad unit so ads show up reliably.
+   * Only fallback to test ads during explicit test/debug sessions.
+   * Default is false so production users strictly request live ad units,
+   * guaranteeing 100% of impressions and revenue are captured in AdMob.
    */
-  var autoFallbackToTestOnNoFill: Boolean = true
+  var autoFallbackToTestOnNoFill: Boolean = false
 
   // Optional: add your device's hashed ID here to force test mode on that device
   // even when useLiveAds = true. Get your hash from logcat: "Use RequestConfiguration..."

@@ -11,8 +11,10 @@ package app.infinity.mpvz.ui.player.controls.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -156,8 +158,9 @@ fun BrightnessSlider(
   Surface(
     modifier = modifier,
     shape = AppShapeScale.extraLarge,
-    color = Color.Black.copy(alpha = 0.5f),
+    color = Color(0xFF0A0C10).copy(alpha = 0.78f),
     contentColor = Color.White,
+    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
   ) {
     Column(
       modifier = Modifier.padding(horizontal = 14.dp, vertical = 20.dp),
@@ -168,6 +171,7 @@ fun BrightnessSlider(
         text = percentText,
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
         textAlign = TextAlign.Center,
         modifier = Modifier.widthIn(min = 48.dp),
       )
@@ -207,8 +211,9 @@ fun VolumeSlider(
   Surface(
     modifier = modifier,
     shape = AppShapeScale.extraLarge,
-    color = Color.Black.copy(alpha = 0.5f),
+    color = Color(0xFF0A0C10).copy(alpha = 0.78f),
     contentColor = Color.White,
+    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
   ) {
     Column(
       modifier = Modifier.padding(horizontal = 14.dp, vertical = 20.dp),
@@ -224,6 +229,7 @@ fun VolumeSlider(
         text = volumeText,
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
         textAlign = TextAlign.Center,
         modifier = Modifier.widthIn(min = 48.dp),
       )

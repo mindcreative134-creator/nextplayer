@@ -29,9 +29,10 @@
 -keep class org.libtorrent4j.swig.libtorrent_jni { *; }
 -keep class org.libtorrent4j.** { *; }
 
+# Allow R8 to expand member access for more aggressive inlining and devirtualization
+-allowaccessmodification
+
 # AndroidX Media3 & Jellyfin FFmpeg Audio Decoder
--keep class androidx.media3.** { *; }
--keepclassmembers class androidx.media3.** { *; }
 -dontwarn androidx.media3.**
 -keep class org.jellyfin.media3.decoder.ffmpeg.** { *; }
 -keepclassmembers class org.jellyfin.media3.decoder.ffmpeg.** { *; }
@@ -45,7 +46,6 @@
 -keep class * extends androidx.room.RoomDatabase
 
 # Koin Dependency Injection
--keep class org.koin.** { *; }
 -dontwarn org.koin.**
 
 # NanoHTTPD (local streaming & torrent proxy)
@@ -112,9 +112,13 @@
     java.lang.Object readResolve();
 }
 
-# Google Mobile Ads (AdMob) - keep the reflection-based internal APIs
--keep class com.google.android.gms.ads.** { *; }
--keep class com.google.ads.** { *; }
+# Google Mobile Ads (AdMob)
+-keep public class com.google.android.gms.ads.** {
+    public *;
+}
+-keep public class com.google.ads.** {
+    public *;
+}
 -keep class com.google.android.gms.common.internal.safeparcel.SafeParcelable { *; }
 -keep class com.google.android.gms.ads.identifier.** { *; }
 -dontwarn com.google.android.gms.ads.**
@@ -133,4 +137,11 @@
 }
 -keep @kotlinx.serialization.Serializable class * { *; }
 
-
+# Retrofit & OkHttp (Stream Catalog)
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+-dontwarn okhttp3.**
+-dontwarn okio.**

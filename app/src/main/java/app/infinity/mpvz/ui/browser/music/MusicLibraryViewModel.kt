@@ -318,7 +318,6 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
 
     val intent = Intent(Intent.ACTION_VIEW, song.uri).apply {
       setClass(context, PlayerActivity::class.java)
-      addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       putExtra("internal_launch", true)
       putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_QUEUE, true)
       putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_TOKEN, launchToken)
@@ -353,7 +352,6 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
 
     val intent = Intent(Intent.ACTION_VIEW, firstSong.uri).apply {
       setClass(context, PlayerActivity::class.java)
-      addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       putExtra("internal_launch", true)
       putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_QUEUE, true)
       putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_TOKEN, launchToken)

@@ -57,9 +57,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.luminance
 import androidx.core.view.drawToBitmap
 import app.infinity.mpvz.R
 import app.infinity.mpvz.preferences.AppearancePreferences
+import app.infinity.mpvz.preferences.CustomThemeData
 import app.infinity.mpvz.preferences.preference.collectAsState
 import org.koin.compose.koinInject
 import kotlin.math.hypot
@@ -277,6 +279,9 @@ fun MpvInfinityTheme(
   val darkMode by preferences.darkMode.collectAsState()
   val amoledMode by preferences.amoledMode.collectAsState()
   val appTheme by preferences.appTheme.collectAsState()
+  val customThemes by preferences.customThemes.collectAsState()
+  val activeCustomThemeId by preferences.activeCustomThemeId.collectAsState()
+  val customTheme = customThemes.firstOrNull { it.id == activeCustomThemeId }
   val useSystemFont by preferences.useSystemFont.collectAsState()
   val darkTheme = isSystemInDarkTheme()
   val configuration = LocalConfiguration.current
@@ -299,7 +304,7 @@ fun MpvInfinityTheme(
       appTheme = appTheme,
       useDarkTheme = true,
       amoledMode = amoledMode,
-    )
+    ).withCustomTheme(customTheme)
   val colorScheme =
     if (useDarkTheme) {
       darkColorScheme
@@ -309,7 +314,7 @@ fun MpvInfinityTheme(
         appTheme = appTheme,
         useDarkTheme = false,
         amoledMode = amoledMode,
-      )
+      ).withCustomTheme(customTheme)
     }
 
   // Provide theme transition state first, OUTSIDE MaterialExpressiveTheme
@@ -330,6 +335,35 @@ fun MpvInfinityTheme(
       )
     }
   }
+}
+
+private fun ColorScheme.withCustomTheme(theme: CustomThemeData?): ColorScheme {
+  if (theme == null) return this
+  val primary = Color(tuneCustomColor(theme.primaryArgb, theme))
+  val background = Color(tuneCustomColor(theme.backgroundArgb, theme, dim = true))
+  val onBackground = Color(theme.onBackgroundArgb)
+  return copy(
+    primary = primary,
+    onPrimary = if (primary.luminance() > 0.5f) Color.Black else Color.White,
+    background = background,
+    surface = background,
+    surfaceContainerLowest = background,
+    surfaceContainerLow = background.copy(alpha = 0.92f),
+    surfaceContainer = background.copy(alpha = 0.88f),
+    surfaceContainerHigh = background.copy(alpha = 0.82f),
+    surfaceContainerHighest = background.copy(alpha = 0.76f),
+    onBackground = onBackground,
+    onSurface = onBackground,
+    onSurfaceVariant = onBackground.copy(alpha = 0.78f),
+  )
+}
+
+private fun tuneCustomColor(argb: Int, theme: CustomThemeData, dim: Boolean = false): Int {
+  val hsv = FloatArray(3)
+  android.graphics.Color.colorToHSV(argb, hsv)
+  hsv[1] = (hsv[1] * theme.saturation).coerceIn(0f, 1f)
+  hsv[2] = (hsv[2] * theme.brightness * if (dim) (1f - theme.overlay * 0.35f) else 1f).coerceIn(0f, 1f)
+  return android.graphics.Color.HSVToColor(android.graphics.Color.alpha(argb), hsv)
 }
 
 private fun resolveAppColorScheme(

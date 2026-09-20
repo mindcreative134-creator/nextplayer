@@ -9,6 +9,7 @@
 
 package app.infinity.mpvz.utils.media
 
+import android.app.Activity
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
@@ -23,6 +24,8 @@ import app.infinity.mpvz.ui.player.PlaybackItem
 import app.infinity.mpvz.ui.player.PlayerActivity
 import app.infinity.mpvz.ui.player.PlayerLookupHints
 import app.infinity.mpvz.ui.player.PreparedPlaybackLaunchStore
+import app.infinity.mpvz.ui.player.resolveDownloadsUri
+import app.infinity.mpvz.ui.player.resolveLocalPath
 import app.infinity.mpvz.ui.torrent.TorrentSelectionActivity
 import app.infinity.mpvz.utils.storage.FileTypeUtils
 import `is`.xyz.mpv.Utils
@@ -88,10 +91,17 @@ object MediaUtils {
         isExplicitQueue = true,
       )
     val selected = videos[selectedIndex]
+    val selectedUri = if (selected.uri.scheme.equals("content", ignoreCase = true)) {
+      selected.uri.resolveDownloadsUri(context) ?: selected.uri
+    } else {
+      selected.uri
+    }
     val intent =
-      Intent(Intent.ACTION_VIEW, selected.uri).apply {
+      Intent(Intent.ACTION_VIEW, selectedUri).apply {
         setClass(context, PlayerActivity::class.java)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (context !is Activity) {
+          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         putExtra("internal_launch", true)
         putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_QUEUE, true)
         putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_TOKEN, launchToken)
@@ -103,7 +113,12 @@ object MediaUtils {
         putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, selected.width)
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, selected.height)
       }
-    context.startActivity(intent)
+    try {
+      context.startActivity(intent)
+    } catch (e: Exception) {
+      android.util.Log.e("MediaUtils", "Failed to start PlayerActivity with queue", e)
+      android.widget.Toast.makeText(context, app.infinity.mpvz.R.string.toast_playback_load_failed, android.widget.Toast.LENGTH_SHORT).show()
+    }
   }
 
   /**
@@ -150,10 +165,16 @@ object MediaUtils {
           // Resolve the path back to its MediaStore URI for history/quick-play launches so the
           // existing playback-state key (and therefore the saved position) is reused.
           val playbackUri =
-            if (launchSource.isHistoryResumeLaunch() && localPath != null) {
+            (if (launchSource.isHistoryResumeLaunch() && localPath != null) {
               resolveMediaStoreUri(context, localPath, source.isAudio) ?: source.uri
             } else {
               source.uri
+            }).let { rawUri ->
+              if (rawUri.scheme.equals("content", ignoreCase = true)) {
+                rawUri.resolveDownloadsUri(context) ?: rawUri
+              } else {
+                rawUri
+              }
             }
           val intent = Intent(Intent.ACTION_VIEW, playbackUri)
           val torrentSource = playbackUri.toString().takeIf { isTorrentSource(it, source.mimeType) }
@@ -166,7 +187,9 @@ object MediaUtils {
             },
           )
           intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-          intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+          if (context !is Activity) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          }
           intent.putExtra("internal_launch", true) // Enables subtitle autoload
           localPath?.let { intent.putExtra("local_media_path", it) }
           intent.putExtra("is_audio", source.isAudio)
@@ -205,7 +228,12 @@ object MediaUtils {
             isAudio = isAudio,
             playlistDurationsSeconds = playlistDurationsSeconds,
           )
-          context.startActivity(intent)
+          try {
+            context.startActivity(intent)
+          } catch (e: Exception) {
+            android.util.Log.e("MediaUtils", "Failed to start playback activity", e)
+            android.widget.Toast.makeText(context, app.infinity.mpvz.R.string.toast_playback_load_failed, android.widget.Toast.LENGTH_SHORT).show()
+          }
           return
         }
 
@@ -224,11 +252,22 @@ object MediaUtils {
           } else {
             // It's likely a network URI - parse normally
             val parsedUri = source.toUri()
-            parsedUri.scheme?.let { parsedUri } ?: "file://$source".toUri()
+            val effectiveUri = parsedUri.scheme?.let { parsedUri } ?: "file://$source".toUri()
+            if (effectiveUri.scheme.equals("content", ignoreCase = true)) {
+              effectiveUri.resolveDownloadsUri(context) ?: effectiveUri
+            } else {
+              effectiveUri
+            }
           }
         }
 
-        is android.net.Uri -> source
+        is android.net.Uri -> {
+          if (source.scheme.equals("content", ignoreCase = true)) {
+            source.resolveDownloadsUri(context) ?: source
+          } else {
+            source
+          }
+        }
         else -> {
           android.util.Log.e("MediaUtils", "Unsupported source type: ${source::class.java}")
           return
@@ -240,13 +279,16 @@ object MediaUtils {
         source is String && source.startsWith("file://", ignoreCase = true) -> source.removePrefix("file://")
         source is String && source.startsWith("/") -> source
         uri.scheme.equals("file", ignoreCase = true) -> uri.path
+        uri.scheme.equals("content", ignoreCase = true) -> uri.resolveLocalPath(context)
         else -> null
-      }?.takeIf { File(it).isFile }
+      }?.takeIf { File(it).exists() }
 
     val playbackUri =
       if (launchSource.isHistoryResumeLaunch() && localPath != null) {
         val isAudio = File(localPath).extension.lowercase() in FileTypeUtils.AUDIO_EXTENSIONS
         resolveMediaStoreUri(context, localPath, isAudio) ?: uri
+      } else if (localPath != null && uri.scheme.equals("content", ignoreCase = true) && File(localPath).canRead()) {
+        Uri.fromFile(File(localPath))
       } else {
         uri
       }
@@ -267,12 +309,18 @@ object MediaUtils {
       },
     )
     intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    // Grant read permission for content:// URIs (e.g. content://media/external/downloads/...)
+    if (playbackUri.scheme.equals("content", ignoreCase = true)) {
+      intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    if (context !is Activity) {
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
     localPath?.let { intent.putExtra("local_media_path", it) }
     applyPlaybackExtras(
       intent = intent,
       launchSource = launchSource,
-      title = title,
+      title = title ?: localPath?.let { File(it).name },
       headers = headers,
       subtitles = subtitles,
       enabledSubtitles = enabledSubtitles,
@@ -292,7 +340,21 @@ object MediaUtils {
       isAudio = isAudio,
       playlistDurationsSeconds = playlistDurationsSeconds,
     )
-    context.startActivity(intent)
+    try {
+      context.startActivity(intent)
+    } catch (e: Exception) {
+      if (intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0) {
+        try {
+          intent.flags = intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION.inv()
+          context.startActivity(intent)
+          return
+        } catch (inner: Exception) {
+          android.util.Log.e("MediaUtils", "Retry startActivity without grant flag failed", inner)
+        }
+      }
+      android.util.Log.e("MediaUtils", "Failed to start playback activity", e)
+      android.widget.Toast.makeText(context, app.infinity.mpvz.R.string.toast_playback_load_failed, android.widget.Toast.LENGTH_SHORT).show()
+    }
   }
 
   private fun String?.isHistoryResumeLaunch(): Boolean =
@@ -473,11 +535,16 @@ object MediaUtils {
    */
   fun isURLValid(url: String): Boolean =
     isTorrentSource(url) ||
-      url.toUri().let { uri ->
+      runCatching {
+        val uri = url.toUri()
+        val scheme = uri.scheme?.lowercase()
         val structureOk =
           uri.isHierarchical && !uri.isRelative && (!uri.host.isNullOrBlank() || !uri.path.isNullOrBlank())
-        structureOk && Utils.PROTOCOLS.contains(uri.scheme)
-      }
+        structureOk && (
+          scheme in setOf("content", "file", "http", "https", "rtmp", "rtmps", "rtsp", "rtsps", "mms", "mmsh", "udp", "tcp", "hls", "dash", "ftp", "ftps") ||
+            Utils.PROTOCOLS.any { it.equals(scheme, ignoreCase = true) }
+        )
+      }.getOrDefault(false)
 
   /**
    * Share videos via system share sheet.

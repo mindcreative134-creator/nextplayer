@@ -52,9 +52,12 @@ import app.infinity.mpvz.ui.icons.Icon
 import app.infinity.mpvz.ui.icons.Icons
 import app.infinity.mpvz.ui.player.ytdlp.YtdlpManager
 import app.infinity.mpvz.utils.history.RecentlyPlayedOps
+import app.infinity.mpvz.ui.player.resolveDownloadsUri
+import app.infinity.mpvz.ui.player.resolveLocalPath
 import app.infinity.mpvz.utils.media.MediaInfoParser
 import app.infinity.mpvz.utils.media.MediaUtils
 import app.infinity.mpvz.utils.media.SharedUrlExtractor
+import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -92,15 +95,36 @@ fun PlayLinkSheet(
       isSubmitting = true
       coroutineScope.launch {
         try {
+          val parsedUri = runCatching { android.net.Uri.parse(playableSource) }.getOrNull()
+          val isContent = parsedUri?.scheme.equals("content", ignoreCase = true)
+          val resolvedUri = if (isContent && parsedUri != null) {
+            parsedUri.resolveDownloadsUri(context) ?: parsedUri
+          } else {
+            parsedUri
+          }
+          val directPath = if (isContent && parsedUri != null) {
+            (if (resolvedUri?.scheme == "file") resolvedUri.path else null)
+              ?: parsedUri.resolveLocalPath(context)
+          } else {
+            null
+          }
+          val effectiveSource = if (directPath != null && File(directPath).canRead()) {
+            directPath
+          } else {
+            resolvedUri?.toString() ?: playableSource
+          }
+
           val extractedPlaylist =
-            if (isPlaylistInput) {
-              YtdlpManager.extractPlaylist(context, playableSource, ytdlPreferences).getOrNull()
+            if (isPlaylistInput && !isContent) {
+              YtdlpManager.extractPlaylist(context, effectiveSource, ytdlPreferences).getOrNull()
             } else {
               null
             }
           val firstEntry = extractedPlaylist?.entries?.firstOrNull()
-          val selectedSource = firstEntry?.url ?: playableSource
-          val selectedName = firstEntry?.title ?: MediaInfoParser.parseStreamTitle(playableSource)
+          val selectedSource = firstEntry?.url ?: effectiveSource
+          val selectedName = firstEntry?.title
+            ?: directPath?.let { File(it).name }
+            ?: MediaInfoParser.parseStreamTitle(effectiveSource)
           if (!isTorrentSource(selectedSource)) {
             try {
               RecentlyPlayedOps.addRecentlyPlayed(
@@ -144,7 +168,7 @@ fun PlayLinkSheet(
           if (extractedPlaylist != null) {
             YtdlpManager.playPlaylist(context, extractedPlaylist, "play_link")
           } else {
-            onPlayLink(playableSource)
+            onPlayLink(selectedSource)
           }
           onDismiss()
         } finally {

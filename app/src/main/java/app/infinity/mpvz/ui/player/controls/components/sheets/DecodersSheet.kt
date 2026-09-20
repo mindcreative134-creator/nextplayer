@@ -7,7 +7,7 @@ package app.infinity.mpvz.ui.player.controls.components.sheets
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,7 +52,7 @@ fun DecodersSheet(
 
   PlayerSheet(onDismissRequest) {
     Column {
-      ScrollableTabRow(selectedTabIndex = selectedTab) {
+      PrimaryScrollableTabRow(selectedTabIndex = selectedTab) {
         Tab(
           selected = selectedTab == 0,
           onClick = {

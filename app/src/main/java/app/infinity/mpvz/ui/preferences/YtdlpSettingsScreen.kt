@@ -545,7 +545,6 @@ private fun WebsiteCookieLoginDialog(
               }
               settings.javaScriptEnabled = true
               settings.domStorageEnabled = true
-              settings.databaseEnabled = true
               settings.useWideViewPort = true
               settings.loadWithOverviewMode = true
               settings.setSupportMultipleWindows(false)
@@ -582,7 +581,6 @@ private fun WebsiteCookieLoginDialog(
               CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
               webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean = false
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean = false
                 override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                   Log.i(
                     COOKIE_WEBVIEW_TAG,

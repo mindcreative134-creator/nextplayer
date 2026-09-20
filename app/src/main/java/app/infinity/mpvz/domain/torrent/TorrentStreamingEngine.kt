@@ -448,12 +448,14 @@ class TorrentStreamingEngine(
       // racing onto disk before their paths and priorities have been validated.
       session.download(parsed.cleanMagnetUri, cacheDir, TorrentFlags.UPLOAD_MODE)
       val handle = waitForHandle(session, hash, startGeneration, failure)
-      // Preserve explicit/private tracker policy. Public fallbacks are only appropriate when the
-      // source supplied no tracker at all.
-      if (parsed.trackers.isEmpty()) {
-        DEFAULT_TORRENT_TRACKERS.forEach { tracker -> handle.addTracker(AnnounceEntry(tracker)) }
-        handle.forceReannounce()
+      // Always add high-speed public open trackers so peer discovery does not fail on dead/blocked trackers
+      val existingTrackers = parsed.trackers.toSet()
+      DEFAULT_TORRENT_TRACKERS.forEach { tracker ->
+        if (tracker !in existingTrackers) {
+          handle.addTracker(AnnounceEntry(tracker))
+        }
       }
+      handle.forceReannounce()
       val info = waitForMetadata(handle, startGeneration, failure)
       if (!info.hasV1()) throw streamError("BitTorrent v2-only torrents are not supported yet.")
       if (!info.infoHash().toHex().equals(parsed.infoHash, ignoreCase = true)) {
@@ -495,7 +497,13 @@ class TorrentStreamingEngine(
       val handle = waitForHandle(session, info.infoHash(), startGeneration, failure)
       endpoints.trackers.forEach { tracker -> handle.addTracker(AnnounceEntry(tracker)) }
       endpoints.webSeeds.forEach(handle::addUrlSeed)
-      if (endpoints.trackers.isNotEmpty()) handle.forceReannounce()
+      val existingTrackers = endpoints.trackers.toSet()
+      DEFAULT_TORRENT_TRACKERS.forEach { tracker ->
+        if (tracker !in existingTrackers) {
+          handle.addTracker(AnnounceEntry(tracker))
+        }
+      }
+      handle.forceReannounce()
       if (info.isPrivate && endpoints.trackers.isEmpty()) {
         throw streamError("Private torrent metadata does not contain a supported tracker.")
       }
@@ -640,13 +648,18 @@ class TorrentStreamingEngine(
     val lastPiece = ((fileOffset + selected.size - 1L) / pieceLength).toInt()
     handle.setSequentialRange(firstPiece, lastPiece)
 
-    val headEnd = (firstPiece + 15).coerceAtMost(lastPiece)
+    // Prioritize both the beginning (container headers) and the end (moov atom / seek index)
+    // with short deadlines so mpv demuxer starts playback within 1-2 seconds without freezing at 0%
+    val headEnd = (firstPiece + 31).coerceAtMost(lastPiece)
     for (piece in firstPiece..headEnd) {
       handle.piecePriority(piece, Priority.TOP_PRIORITY)
-      handle.setPieceDeadline(piece, (piece - firstPiece) * 100)
+      handle.setPieceDeadline(piece, ((piece - firstPiece) * 50).coerceAtMost(2000))
     }
-    val tailStart = (lastPiece - 7).coerceAtLeast(firstPiece)
-    for (piece in tailStart..lastPiece) handle.piecePriority(piece, Priority.TOP_PRIORITY)
+    val tailStart = (lastPiece - 15).coerceAtLeast(firstPiece)
+    for (piece in tailStart..lastPiece) {
+      handle.piecePriority(piece, Priority.TOP_PRIORITY)
+      handle.setPieceDeadline(piece, ((lastPiece - piece) * 50).coerceAtMost(2000))
+    }
     handle.unsetFlags(TorrentFlags.UPLOAD_MODE)
     handle.resume()
   }

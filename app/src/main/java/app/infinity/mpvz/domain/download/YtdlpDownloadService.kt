@@ -77,8 +77,10 @@ class YtdlpDownloadService : Service() {
   }
 
   private fun notify(notification: android.app.Notification) {
-    val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-    manager.notify(NOTIFICATION_ID, notification)
+    runCatching {
+      val manager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
+      manager?.notify(NOTIFICATION_ID, notification)
+    }
   }
 
   private fun buildNotification(job: YtdlpDownloadEngine.Job?): android.app.Notification {
@@ -88,7 +90,7 @@ class YtdlpDownloadService : Service() {
     val progress = job?.progressPercent?.toInt() ?: 0
     val text =
       when {
-        running && job != null -> {
+        running -> {
           val queueSuffix = if (queued > 0) " (+$queued)" else ""
           "$progress% ${job.detail}$queueSuffix".trim()
         }

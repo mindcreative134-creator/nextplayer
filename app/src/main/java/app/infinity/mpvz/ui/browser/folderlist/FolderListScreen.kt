@@ -96,10 +96,12 @@ import app.infinity.mpvz.domain.media.model.Video
 import app.infinity.mpvz.domain.media.model.VideoFolder
 import app.infinity.mpvz.preferences.AppearancePreferences
 import app.infinity.mpvz.preferences.BrowserPreferences
+import app.infinity.mpvz.preferences.FolderSortType
 import app.infinity.mpvz.preferences.FolderViewMode
 import app.infinity.mpvz.preferences.FoldersPreferences
 import app.infinity.mpvz.preferences.GesturePreferences
 import app.infinity.mpvz.preferences.MediaLayoutMode
+import app.infinity.mpvz.preferences.SortOrder
 import app.infinity.mpvz.preferences.preference.collectAsState
 import app.infinity.mpvz.presentation.Screen
 import app.infinity.mpvz.presentation.components.pullrefresh.PullRefreshBox
@@ -948,6 +950,29 @@ object FolderListScreen : Screen {
                   },
                   selectedFolderBucketId = selectedFolderBucketId,
                   audioOnly = audioOnly,
+                  folderSortType = folderSortType,
+                  folderSortOrder = folderSortOrder,
+                  onSortClick = { sortDialogOpen.value = true },
+                  onSearchClick = { internalIsSearching = !internalIsSearching },
+                  onRefreshClick = { coroutineScope.launch { viewModel.refresh() } },
+                  onToggleLayoutMode = {
+                    browserPreferences.mediaLayoutMode.set(
+                      if (mediaLayoutMode == MediaLayoutMode.GRID) MediaLayoutMode.LIST else MediaLayoutMode.GRID
+                    )
+                  },
+                  onNavigateToFavorites = {
+                    coroutineScope.launch {
+                      listState.animateScrollToItem(0)
+                      gridState.animateScrollToItem(0)
+                    }
+                  },
+                  onNavigateToPlaylists = {
+                    backstack.add(app.infinity.mpvz.ui.browser.playlist.PlaylistScreen)
+                  },
+                  onStreamClick = {
+                    backstack.add(app.infinity.mpvz.ui.browser.catalog.StreamScreen)
+                  },
+                  embedded = embedded,
                 )
               }
           } else if (isPermissionSetupCompleted) {
@@ -1250,6 +1275,16 @@ private fun FolderListContent(
   onTogglePin: (VideoFolder) -> Unit,
   selectedFolderBucketId: String? = null,
   audioOnly: Boolean = false,
+  folderSortType: FolderSortType = FolderSortType.Title,
+  folderSortOrder: SortOrder = SortOrder.Ascending,
+  onSortClick: () -> Unit = {},
+  onSearchClick: () -> Unit = {},
+  onRefreshClick: () -> Unit = {},
+  onToggleLayoutMode: () -> Unit = {},
+  onNavigateToFavorites: () -> Unit = {},
+  onNavigateToPlaylists: () -> Unit = {},
+  onStreamClick: () -> Unit = {},
+  embedded: Boolean = false,
 ) {
   val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
   val showLoading = isLoading && !hasCompletedInitialLoad
@@ -1308,6 +1343,16 @@ private fun FolderListContent(
           onTogglePin = onTogglePin,
           selectedFolderBucketId = selectedFolderBucketId,
           audioOnly = audioOnly,
+          folderSortType = folderSortType,
+          folderSortOrder = folderSortOrder,
+          onSortClick = onSortClick,
+          onSearchClick = onSearchClick,
+          onRefreshClick = onRefreshClick,
+          onToggleLayoutMode = onToggleLayoutMode,
+          onNavigateToFavorites = onNavigateToFavorites,
+          onNavigateToPlaylists = onNavigateToPlaylists,
+          onStreamClick = onStreamClick,
+          embedded = embedded,
         )
       } else {
         ListContent(
@@ -1325,6 +1370,16 @@ private fun FolderListContent(
           onTogglePin = onTogglePin,
           selectedFolderBucketId = selectedFolderBucketId,
           audioOnly = audioOnly,
+          folderSortType = folderSortType,
+          folderSortOrder = folderSortOrder,
+          onSortClick = onSortClick,
+          onSearchClick = onSearchClick,
+          onRefreshClick = onRefreshClick,
+          onToggleLayoutMode = onToggleLayoutMode,
+          onNavigateToFavorites = onNavigateToFavorites,
+          onNavigateToPlaylists = onNavigateToPlaylists,
+          onStreamClick = onStreamClick,
+          embedded = embedded,
         )
       }
     }
@@ -1347,6 +1402,16 @@ private fun GridContent(
   onTogglePin: (VideoFolder) -> Unit,
   selectedFolderBucketId: String? = null,
   audioOnly: Boolean = false,
+  folderSortType: FolderSortType = FolderSortType.Title,
+  folderSortOrder: SortOrder = SortOrder.Ascending,
+  onSortClick: () -> Unit = {},
+  onSearchClick: () -> Unit = {},
+  onRefreshClick: () -> Unit = {},
+  onToggleLayoutMode: () -> Unit = {},
+  onNavigateToFavorites: () -> Unit = {},
+  onNavigateToPlaylists: () -> Unit = {},
+  onStreamClick: () -> Unit = {},
+  embedded: Boolean = false,
 ) {
   val newCountByBucketId =
     remember(foldersWithNewCount) {
@@ -1393,6 +1458,28 @@ private fun GridContent(
       horizontalArrangement = Arrangement.spacedBy(2.dp),
       verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+      if (!audioOnly && !embedded && !selectionManager.isInSelectionMode) {
+        item(
+          key = "home_dashboard_header_grid",
+          span = { GridItemSpan(maxLineSpan) },
+        ) {
+          app.infinity.mpvz.ui.browser.home.HomeDashboardHeader(
+            folders = folders,
+            pinnedCount = pinnedFolderPaths.size,
+            mediaLayoutMode = MediaLayoutMode.GRID,
+            sortType = folderSortType,
+            sortOrder = folderSortOrder,
+            onSortClick = onSortClick,
+            onSearchClick = onSearchClick,
+            onRefreshClick = onRefreshClick,
+            onToggleLayoutMode = onToggleLayoutMode,
+            onNavigateToFavorites = onNavigateToFavorites,
+            onNavigateToPlaylists = onNavigateToPlaylists,
+            onStreamClick = onStreamClick,
+          )
+        }
+      }
+
       val adIndex = 4
       val showNativeAd = folders.size >= 4 && !selectionManager.isInSelectionMode
 
@@ -1485,6 +1572,16 @@ private fun ListContent(
   onTogglePin: (VideoFolder) -> Unit,
   selectedFolderBucketId: String? = null,
   audioOnly: Boolean = false,
+  folderSortType: FolderSortType = FolderSortType.Title,
+  folderSortOrder: SortOrder = SortOrder.Ascending,
+  onSortClick: () -> Unit = {},
+  onSearchClick: () -> Unit = {},
+  onRefreshClick: () -> Unit = {},
+  onToggleLayoutMode: () -> Unit = {},
+  onNavigateToFavorites: () -> Unit = {},
+  onNavigateToPlaylists: () -> Unit = {},
+  onStreamClick: () -> Unit = {},
+  embedded: Boolean = false,
 ) {
   val configuration = androidx.compose.ui.platform.LocalConfiguration.current
   val isTablet = configuration.smallestScreenWidthDp >= 600
@@ -1508,6 +1605,25 @@ private fun ListContent(
           bottom = navigationBarHeight,
         ),
     ) {
+      if (!audioOnly && !embedded && !selectionManager.isInSelectionMode) {
+        item(key = "home_dashboard_header_list") {
+          app.infinity.mpvz.ui.browser.home.HomeDashboardHeader(
+            folders = folders,
+            pinnedCount = pinnedFolderPaths.size,
+            mediaLayoutMode = MediaLayoutMode.LIST,
+            sortType = folderSortType,
+            sortOrder = folderSortOrder,
+            onSortClick = onSortClick,
+            onSearchClick = onSearchClick,
+            onRefreshClick = onRefreshClick,
+            onToggleLayoutMode = onToggleLayoutMode,
+            onNavigateToFavorites = onNavigateToFavorites,
+            onNavigateToPlaylists = onNavigateToPlaylists,
+            onStreamClick = onStreamClick,
+          )
+        }
+      }
+
       val adIndex = 3
       val showNativeAd = folders.size >= 4 && !selectionManager.isInSelectionMode
 

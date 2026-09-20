@@ -94,10 +94,8 @@ object AdmobManager {
         }
         MobileAds.initialize(context) { initializationStatus ->
           Log.d(TAG, "AdMob initialized successfully: ${initializationStatus.adapterStatusMap.keys}")
-          loadAppOpenAd(context.applicationContext)
-          loadInterstitialAd(context.applicationContext)
-          loadRewardedAd(context.applicationContext)
-          preloadPauseAd(context.applicationContext)
+          loadAppOpenAd(context)
+          loadInterstitialAd(context)
         }
       } catch (e: Exception) {
         Log.e(TAG, "Failed to initialize AdMob", e)
@@ -132,14 +130,6 @@ object AdmobManager {
           appOpenLoadTime = Date().time
           isAppOpenAdLoading = false
           lastAppOpenFailTime = 0
-
-          // If a pending cold-start activity was waiting on launch, show it immediately
-          val coldAct = coldStartActivityRef?.get()
-          val elapsedSinceLaunch = SystemClock.elapsedRealtime() - appLaunchTimestamp
-          if (coldAct != null && !coldAct.isFinishing && !coldAct.isDestroyed && elapsedSinceLaunch < 10_000L) {
-            coldStartActivityRef = null
-            showAppOpenAdIfAvailable(coldAct)
-          }
         }
 
         override fun onAdFailedToLoad(loadAdError: LoadAdError) {
@@ -152,8 +142,6 @@ object AdmobManager {
           if (AdConfig.autoFallbackToTestOnNoFill && adUnitId != AdConfig.TEST_APP_OPEN_AD_ID) {
             Log.i(TAG, "Cascading to Google Test App Open ad unit (${AdConfig.TEST_APP_OPEN_AD_ID})")
             loadAppOpenAd(context, AdConfig.TEST_APP_OPEN_AD_ID)
-          } else {
-            coldStartActivityRef = null
           }
         }
       },
@@ -174,6 +162,12 @@ object AdmobManager {
     }
 
     val now = SystemClock.elapsedRealtime()
+    // Suppress App Open ad on cold start to maintain <5s Google Play Vitals threshold
+    // Allow the app to render first frame and stabilize before any full-screen ad can trigger
+    if (appLaunchTimestamp > 0 && (now - appLaunchTimestamp < 12_000L)) {
+      onComplete()
+      return
+    }
     // Enforce 3-minute cooldown between App Open ads to avoid annoying user on fast app switching
     if (lastAppOpenShowTime > 0 && (now - lastAppOpenShowTime < AdConfig.APP_OPEN_COOLDOWN_MS)) {
       onComplete()
@@ -187,11 +181,7 @@ object AdmobManager {
 
     val ad = appOpenAd
     if (ad == null || !isAppOpenAdAvailable()) {
-      val elapsedSinceLaunch = SystemClock.elapsedRealtime() - appLaunchTimestamp
-      if (elapsedSinceLaunch < 10_000L) {
-        coldStartActivityRef = WeakReference(activity)
-      }
-      loadAppOpenAd(activity.applicationContext)
+      loadAppOpenAd(activity)
       onComplete()
       return
     }
@@ -425,7 +415,7 @@ object AdmobManager {
   }
 
   private fun createPauseAdViewInstance(context: Context, unitId: String): AdView {
-    val adView = AdView(context.applicationContext).apply {
+    val adView = AdView(context).apply {
       this.adUnitId = unitId
       setAdSize(AdSize.BANNER)
       adListener = object : AdListener() {

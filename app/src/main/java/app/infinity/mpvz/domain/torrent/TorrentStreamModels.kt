@@ -103,7 +103,13 @@ val DEFAULT_TORRENT_TRACKERS =
     "udp://explodie.org:6969/announce",
     "udp://tracker.openbittorrent.com:6969/announce",
     "udp://p4p.arenabg.com:1337/announce",
+    "udp://movies.zsw.ca:6969/announce",
+    "udp://tracker.moeking.me:6969/announce",
+    "udp://tracker.dler.org:6969/announce",
+    "udp://open.demonii.com:1337/announce",
+    "udp://tracker.filemail.com:6969/announce",
     "https://tracker.opentrackr.org:443/announce",
+    "http://tracker.openbittorrent.com:80/announce",
   )
 
 private val v1HexHash = Regex("^[0-9a-fA-F]{40}$")

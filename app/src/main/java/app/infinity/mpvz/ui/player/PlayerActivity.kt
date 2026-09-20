@@ -981,7 +981,7 @@ class PlayerActivity :
                   ?: queueItem?.originalUri?.takeIf { it.isNotBlank() }
                   ?: currentUri
                 val handoffPlayableSource =
-                  if (isTorrentHandoff && currentUri != null && !isTorrentSource(currentUri, intent.type)) {
+                  if (isTorrentHandoff && !isTorrentSource(currentUri, intent.type)) {
                     currentUri
                   } else {
                     handoffSource
@@ -2851,16 +2851,32 @@ class PlayerActivity :
     }
   }
 
+  private fun matchesCurrentPlaybackSession(sourceIntent: Intent): Boolean {
+    val currentItem = PlaybackSession.state.value.currentItem ?: PlaybackSession.queue.value.currentItem ?: return false
+    val phase = PlaybackSession.state.value.phase
+    if (phase !in setOf(PlaybackPhase.LOADING, PlaybackPhase.READY, PlaybackPhase.BACKGROUND)) return false
+
+    if (sourceIntent.action == MediaPlaybackService.ACTION_OPEN_PLAYER) return true
+
+    val incomingData = sourceIntent.data?.toString()
+    if (incomingData.isNullOrBlank()) return true
+
+    val originalUri = currentItem.originalUri
+    val playableUri = currentItem.playableUri
+    val mediaIdentifier = sourceIntent.getStringExtra("media_identifier")
+
+    return incomingData == originalUri ||
+      incomingData == playableUri ||
+      (mediaIdentifier != null && mediaIdentifier == currentItem.stableId)
+  }
+
   private fun attachToCurrentPlaybackSessionIfRequested(sourceIntent: Intent = intent): Boolean {
-    if (sourceIntent.action != MediaPlaybackService.ACTION_OPEN_PLAYER) return false
+    if (!matchesCurrentPlaybackSession(sourceIntent)) return false
     return attachToPlaybackSession(sourceIntent)
   }
 
   private fun hasAttachableNotificationSession(): Boolean {
-    if (intent.action != MediaPlaybackService.ACTION_OPEN_PLAYER) return false
-    val state = PlaybackSession.state.value
-    return state.currentItem != null &&
-      state.phase in setOf(PlaybackPhase.LOADING, PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
+    return matchesCurrentPlaybackSession(intent)
   }
 
   private fun attachToSavedPlaybackSessionIfValid(sourceIntent: Intent = intent): Boolean {
@@ -4147,9 +4163,12 @@ class PlayerActivity :
         // A value returned here is retained in PlaybackItem. Never detach an fd at this stage:
         // fd:// handles are consumed by their first mpv load and cannot survive replay/reopen.
         // PlaybackSession opens one fresh descriptor immediately before every actual load.
-        Intent.ACTION_VIEW -> intent.data?.resolveUri(this, allowFdFallback = false)
+        Intent.ACTION_VIEW -> {
+          val uri = intent.data?.resolveDownloadsUri(this) ?: intent.data
+          uri?.resolveUri(this, allowFdFallback = false)
+        }
         Intent.ACTION_SEND -> parsePathFromSendIntent(intent)
-        else -> intent.getStringExtra("uri")
+        else -> extractUriFromIntent(intent)?.resolveUri(this, allowFdFallback = false)
       }
 
   /**
@@ -4190,13 +4209,17 @@ class PlayerActivity :
    */
   private fun getFileName(intent: Intent): String {
     // First check if a custom title/filename was provided via intent extras
-    intent.getStringExtra("title")?.let { return it }
-    intent.getStringExtra("filename")?.let { return it }
+    intent.getStringExtra("title")?.takeIf { it.isNotBlank() }?.let { return it }
+    intent.getStringExtra("filename")?.takeIf { it.isNotBlank() }?.let { return it }
+
+    intent.getStringExtra("local_media_path")?.takeIf { it.isNotBlank() && File(it).exists() }?.let {
+      return File(it).name
+    }
 
     val uri = extractUriFromIntent(intent) ?: return ""
 
     // Try content resolver first for content:// URIs
-    getDisplayNameFromUri(uri)?.let { return it }
+    getDisplayNameFromUri(uri)?.takeIf { it.isNotBlank() }?.let { return it }
 
     // Extract filename from URL/URI
     return extractFileNameFromUri(uri)
@@ -4310,7 +4333,8 @@ class PlayerActivity :
   ): Map<String, String> {
     if (!HttpUtils.isNetworkStream(uri)) return emptyMap()
     var headers = PlaybackHttpHeaders.merge(*sources)
-    headers = PlaybackHttpHeaders.withDefault(headers, "Referer", HttpUtils.extractRefererDomain(uri))
+    // Only set default User-Agent. Do NOT fabricate a default Referer header,
+    // as unexpected Referer headers cause 403 Forbidden errors on many video CDNs.
     headers = PlaybackHttpHeaders.withDefault(headers, "User-Agent", NetworkUserAgent.resolve(this))
     return headers
   }
@@ -4427,7 +4451,8 @@ class PlayerActivity :
         intent.getParcelableExtra(Intent.EXTRA_STREAM)
       }
 
-    return intent.data ?: streamUri ?: extractSharedTextUri(intent) ?: intent.getStringExtra("uri")?.toUri()
+    val rawUri = intent.data ?: streamUri ?: extractSharedTextUri(intent) ?: intent.getStringExtra("uri")?.toUri()
+    return rawUri?.resolveDownloadsUri(this) ?: rawUri
   }
 
   /**
@@ -4466,6 +4491,25 @@ class PlayerActivity :
 
     val uri = parsePathFromIntent(intent)
     if (uri == null) {
+      // parsePathFromIntent could not resolve a local path (e.g. content:// URI in scoped storage
+      // where no filesystem path is accessible). Check if intent.data is a content:// URI that
+      // PlaybackSession can open via file descriptor at load time instead of failing immediately.
+      val intentUri = (intent.data ?: extractUriFromIntent(intent))
+      if (intentUri?.scheme.equals("content", ignoreCase = true)) {
+        // Log diagnostic info for debugging.
+        val mimeType = runCatching { contentResolver.getType(intentUri!!) }.getOrNull()
+        val displayName = runCatching {
+          contentResolver.query(intentUri!!, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME, android.provider.OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0) else null
+          }
+        }.getOrNull()
+        Log.i(TAG, "[CONTENT_URI] Deferring to PlaybackSession FD resolution: uri=$intentUri mimeType=$mimeType displayName=$displayName")
+        // Return the raw content URI string. PlaybackSession.resolvePlayableUri() will open
+        // a fresh file descriptor (openContentFd with allowFdFallback=true) immediately before
+        // each mpv load, which is the correct pattern for content:// URIs in scoped storage.
+        val resolved = intentUri!!.resolveDownloadsUri(this) ?: intentUri
+        return resolved.toString()
+      }
       Log.e(TAG, "Unable to resolve playable media URI: ${extractUriFromIntent(intent)}")
       viewModel.onVideoLoadCompleted()
       viewModel.showToast(getString(R.string.toast_playback_load_failed))
@@ -4475,7 +4519,13 @@ class PlayerActivity :
       // Resolve to a real path when possible, but never to a single-use fd:// here: this value is
       // stored on the queue item, and a replay would reuse a descriptor mpv has already consumed.
       // Unresolvable URIs stay content:// and get a fresh descriptor per load in PlaybackSession.
-      uri.toUri().openContentFd(this, allowFdFallback = false) ?: uri
+      val target = uri.toUri().resolveDownloadsUri(this) ?: uri.toUri()
+      val localPath = target.openContentFd(this, allowFdFallback = false)
+      if (localPath != null && File(localPath).canRead()) {
+        localPath
+      } else {
+        target.toString()
+      }
     } else {
       uri
     }
@@ -5866,6 +5916,29 @@ class PlayerActivity :
 
     var intent = sourceIntent
 
+    // If incoming intent targets the media currently playing in background or foreground,
+    // reattach immediately to the ongoing playback session without interrupting or restarting it.
+    if (matchesCurrentPlaybackSession(intent)) {
+      isBackgroundPlaybackSessionActive = false
+      pendingBackgroundTransition = false
+      if (attachToCurrentPlaybackSessionIfRequested(intent)) {
+        PlaybackSession.markForeground()
+        isReady = PlaybackSession.state.value.phase == PlaybackPhase.READY
+        if (isReady) viewModel.onVideoLoadCompleted()
+        applyPlaybackBrightnessPolicy(isAudio = isCurrentMediaKnownAudio())
+        if (isCurrentMediaKnownAudio()) setOrientation()
+        if (isBackgroundPlaybackEnabled()) {
+          if (!serviceBound || mediaPlaybackService == null) {
+            startBackgroundPlaybackInternal(bindToActivity = true)
+          }
+          syncBackgroundPlaybackService(updateThumbnail = true)
+        } else {
+          endBackgroundPlayback()
+        }
+        return
+      }
+    }
+
     // Transport intents control the existing session and must not replace its media/source intent.
     when (intent.action) {
       MediaPlaybackService.ACTION_NOTIFICATION_PREVIOUS -> {
@@ -6401,7 +6474,7 @@ class PlayerActivity :
     val initialPositionSeconds =
       if (positionRestoreOverride != null) {
         positionRestoreOverride.positionSeconds?.takeIf { it.isFinite() && it > 0.0 }
-      } else if (restoreSavedPosition && !item.isDefinitelyAudioOnly()) {
+      } else if (restoreSavedPosition) {
         (resolvePlaybackState(item.stableId, legacyMediaIdentifier)
           ?: resolvePlaybackState(mediaIdentifier, legacyMediaIdentifier)
           ?: playbackStateRepository.getVideoDataByTitle(fileName)
@@ -6416,10 +6489,14 @@ class PlayerActivity :
     ensureCurrentMediaRequest(requestGeneration)
     val requiresYtdlp = sequenceOf(item.originalUri, item.playableUri).any(YtdlpManager::requiresYtdlp)
     val ytdlpReady =
-      YtdlpManager.prepareForPlayback(this, item.playableUri) { line ->
-        line.trim().takeIf { it.isNotEmpty() }?.let { message -> Log.d(TAG, message) }
-      }
-    if (!ytdlpReady) throw IllegalStateException("yt-dlp could not be prepared for web playback")
+      runCatching {
+        YtdlpManager.prepareForPlayback(this, item.playableUri) { line ->
+          line.trim().takeIf { it.isNotEmpty() }?.let { message -> Log.d(TAG, message) }
+        }
+      }.getOrDefault(false)
+    if (requiresYtdlp && !ytdlpReady) {
+      Log.w(TAG, "yt-dlp was not ready for web playback, attempting direct stream playback")
+    }
     ensureCurrentMediaRequest(requestGeneration)
     // Native Media3 is used for HDR-family video, while MPV remains the normal video/audio
     // pipeline. Auto keeps ordinary videos on MPV and routes HDR, HLG, and Dolby Vision to Native.
@@ -6488,6 +6565,20 @@ class PlayerActivity :
       throw IllegalStateException("Timed out waiting for previous playback to stop")
     }
     ensureCurrentMediaRequest(requestGeneration)
+    // Diagnostic log for online playback debugging
+    val isNetworkSource = item.playableUri.let { uri ->
+      uri.startsWith("http://", ignoreCase = true) || uri.startsWith("https://", ignoreCase = true) ||
+        uri.startsWith("rtsp://", ignoreCase = true) || uri.startsWith("rtmp://", ignoreCase = true)
+    }
+    if (isNetworkSource) {
+      Log.i(
+        TAG,
+        "[ONLINE_PLAYBACK] Loading network source: " +
+          "uri=${item.playableUri.take(120)} " +
+          "requiresYtdlp=$requiresYtdlp ytdlpReady=$ytdlpReady " +
+          "bypassYtdl=${!requiresYtdlp} engine=MPV attempt=$attempt",
+      )
+    }
     val generation =
       PlaybackSession.load(
         item = item,
@@ -6495,6 +6586,11 @@ class PlayerActivity :
         positionRestoreOverride = positionRestoreOverride,
         initialPositionSeconds = initialPositionSeconds,
         flattenEditions = requiresYtdlp && !MpvConfigOverridePolicy.isOwnedByMpvConf("flatten-editions"),
+        // For direct media URLs (mp4/m3u8/mpd/ts/etc.) disable ytdl_hook so MPV uses its
+        // own native demuxers. ytdl_hook with ytdl=yes intercepts every http(s) URL and
+        // routes it through yt-dlp; if yt-dlp is absent or the URL is a tokenized CDN
+        // stream the hook fails and MPV never tries the native ffmpeg path.
+        bypassYtdl = !requiresYtdlp,
         commit = { nativeLoad ->
           PlaybackActivityOwner.runIfOwner(playbackOwnerToken, -1L) {
             if (requestGeneration != mediaRequestGeneration) {
@@ -6681,7 +6777,6 @@ class PlayerActivity :
       Intent(sourceIntent).apply {
         setClass(this@PlayerActivity, TorrentSelectionActivity::class.java)
         putExtra(MediaUtils.EXTRA_TORRENT_SOURCE, source)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       }
     torrentPickerHandoff = finishCurrent
     startActivity(pickerIntent)
@@ -7851,8 +7946,9 @@ class PlayerActivity :
     }
 
     val uri = playlist[index]
-    val playableUri = uri.openContentFd(this, allowFdFallback = false) ?: uri.toString()
-    currentPlayableUri = uri.toString()
+    val resolvedUri = uri.resolveDownloadsUri(this) ?: uri
+    val playableUri = resolvedUri.openContentFd(this, allowFdFallback = false) ?: resolvedUri.toString()
+    currentPlayableUri = resolvedUri.toString()
     val persistedNetworkReference = NetworkPlaybackUri.parse(uri.toString())
     val networkFilePath =
       networkPlaylistPaths.getOrNull(index)?.takeIf { it.isNotBlank() }

@@ -12,6 +12,7 @@ package app.infinity.mpvz.ui.browser.dialogs
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -338,15 +339,21 @@ private fun SortTypeSelector(
           modifier =
             Modifier
               .size(64.dp)
-              .clip(AppShapeScale.large)
+              .clip(RoundedCornerShape(16.dp))
               .background(
                 color =
                   if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                   } else {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
+                    MaterialTheme.colorScheme.surfaceContainerHigh
                   },
-              ).clickable(
+              )
+              .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(16.dp),
+              )
+              .clickable(
                 onClick = { onSortTypeChange(type) },
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true),
@@ -356,10 +363,10 @@ private fun SortTypeSelector(
           Icon(
             imageVector = icons[index],
             contentDescription = type,
-            modifier = Modifier.size(30.dp),
+            modifier = Modifier.size(28.dp),
             tint =
               if (selected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.primary
               } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
               },
@@ -368,7 +375,7 @@ private fun SortTypeSelector(
         Text(
           text = type,
           style = MaterialTheme.typography.labelSmall,
-          fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+          fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
           color =
             if (selected) {
               MaterialTheme.colorScheme.primary

@@ -43,6 +43,13 @@ class AppearancePreferences(
 ) {
   val darkMode = preferenceStore.getEnum("dark_mode", DarkMode.System)
   val appTheme = preferenceStore.getEnum("app_theme", AppTheme.Dynamic)
+  val customThemes = preferenceStore.getObject(
+    key = "custom_themes",
+    defaultValue = emptyList<CustomThemeData>(),
+    serializer = CustomThemeCodec::encode,
+    deserializer = CustomThemeCodec::decode,
+  )
+  val activeCustomThemeId = preferenceStore.getString("active_custom_theme_id", "")
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)
   val liquidGlassSurfaces = preferenceStore.getBoolean("liquid_glass_surfaces", false)
   val useSystemFont = preferenceStore.getBoolean("use_system_font", false)
@@ -75,69 +82,37 @@ class AppearancePreferences(
   val topRightControls =
     preferenceStore.getString(
       "top_right_controls",
-      "CAST,CURRENT_CHAPTER,DECODER,AUDIO_TRACK,SUBTITLES,MORE_OPTIONS",
+      "SUBTITLES,PLAYBACK_SPEED,DECODER,MORE_OPTIONS",
     )
 
   val bottomRightControls =
     preferenceStore.getString(
       "bottom_right_controls",
-      "FRAME_NAVIGATION,CLIP,VIDEO_ZOOM,PICTURE_IN_PICTURE,ASPECT_RATIO",
+      "PICTURE_IN_PICTURE,ASPECT_RATIO,VIDEO_ZOOM",
     )
 
   val bottomLeftControls =
     preferenceStore.getString(
       "bottom_left_controls",
-      "BACKGROUND_PLAYBACK,LOCK_CONTROLS,SCREEN_ROTATION,PLAYBACK_SPEED,REPEAT_MODE,SHUFFLE,AB_LOOP",
+      "LOCK_CONTROLS,SCREEN_ROTATION,BACKGROUND_PLAYBACK",
     )
 
   val portraitBottomControls =
     preferenceStore.getString(
       "portrait_bottom_controls",
-      "CAST,SCREEN_ROTATION,DECODER,AUDIO_TRACK,SUBTITLES,BOOKMARKS_CHAPTERS,PLAYBACK_SPEED,BACKGROUND_PLAYBACK,REPEAT_MODE,SHUFFLE,VIDEO_ZOOM,FRAME_NAVIGATION,CLIP,ASPECT_RATIO,PICTURE_IN_PICTURE,LOCK_CONTROLS,MORE_OPTIONS",
+      "LOCK_CONTROLS,SCREEN_ROTATION,ASPECT_RATIO,AUDIO_TRACK,SUBTITLES,PLAYBACK_SPEED,MORE_OPTIONS",
     )
 
-  private val castButtonMigrationComplete =
-    preferenceStore.getBoolean("cast_button_migration_complete", false)
-  private val clipButtonMigrationComplete =
-    preferenceStore.getBoolean("clip_button_migration_complete", false)
+  private val simplifiedControlsMigrationComplete =
+    preferenceStore.getBoolean("simplified_controls_v3_migration_complete", false)
 
   init {
-    if (!castButtonMigrationComplete.get()) {
-      val landscapeButtons =
-        listOf(
-          topLeftControls.get(),
-          topRightControls.get(),
-          bottomRightControls.get(),
-          bottomLeftControls.get(),
-        ).flatMap { it.split(',') }
-          .map { it.trim().uppercase() }
-      if ("CAST" !in landscapeButtons) {
-        topRightControls.set("CAST,${topRightControls.get()}")
-      }
-      val portraitButtons = portraitBottomControls.get().split(',').map { it.trim().uppercase() }
-      if ("CAST" !in portraitButtons) {
-        portraitBottomControls.set("CAST,${portraitBottomControls.get()}")
-      }
-      castButtonMigrationComplete.set(true)
-    }
-
-    if (!clipButtonMigrationComplete.get()) {
-      val landscapeButtons =
-        listOf(
-          topLeftControls.get(),
-          topRightControls.get(),
-          bottomRightControls.get(),
-          bottomLeftControls.get(),
-        ).flatMap { it.split(',') }
-          .map { it.trim().uppercase() }
-      if ("CLIP" !in landscapeButtons) {
-        bottomRightControls.set("${bottomRightControls.get()},CLIP")
-      }
-      val portraitButtons = portraitBottomControls.get().split(',').map { it.trim().uppercase() }
-      if ("CLIP" !in portraitButtons) {
-        portraitBottomControls.set("${portraitBottomControls.get()},CLIP")
-      }
-      clipButtonMigrationComplete.set(true)
+    if (!simplifiedControlsMigrationComplete.get()) {
+      topRightControls.set("SUBTITLES,PLAYBACK_SPEED,DECODER,MORE_OPTIONS")
+      bottomLeftControls.set("LOCK_CONTROLS,SCREEN_ROTATION,BACKGROUND_PLAYBACK")
+      bottomRightControls.set("PICTURE_IN_PICTURE,ASPECT_RATIO,VIDEO_ZOOM")
+      portraitBottomControls.set("LOCK_CONTROLS,SCREEN_ROTATION,ASPECT_RATIO,AUDIO_TRACK,SUBTITLES,PLAYBACK_SPEED,MORE_OPTIONS")
+      simplifiedControlsMigrationComplete.set(true)
     }
   }
 

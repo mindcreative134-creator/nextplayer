@@ -53,6 +53,9 @@ import app.infinity.mpvz.ui.theme.controlColor
 import app.infinity.mpvz.ui.theme.spacing
 import dev.vivvvek.seeker.Segment
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+
 @Composable
 fun TopPlayerControlsPortrait(
   mediaTitle: String?,
@@ -78,69 +81,111 @@ fun TopPlayerControlsPortrait(
           .padding(horizontal = MaterialTheme.spacing.medium),
     ) {
       Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
       ) {
-        ControlsGroup {
-          ControlsButton(
-            icon = Icons.RoundedFilled.ArrowBack,
-            onClick = onBackPress,
-            color = if (hideBackground) controlColor else playerButtonContentColor(),
-            modifier = Modifier.size(45.dp),
-          )
+        Row(
+          modifier = Modifier.weight(1f, fill = false),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          ControlsGroup {
+            ControlsButton(
+              icon = Icons.RoundedFilled.ArrowBack,
+              onClick = onBackPress,
+              color = if (hideBackground) controlColor else playerButtonContentColor(),
+              modifier = Modifier.size(45.dp),
+            )
 
-          Column(
-            modifier = Modifier.padding(start = 4.dp),
-          ) {
-            val titleInteractionSource =
-              remember {
-                androidx.compose.foundation.interaction
-                  .MutableInteractionSource()
-              }
-
-            Surface(
-              shape = CircleShape,
-              color =
-                if (hideBackground) {
-                  Color.Transparent
-                } else {
-                  playerButtonContainerColor()
-                },
-              contentColor = if (hideBackground) controlColor else playerButtonContentColor(),
-              onClick = {
-                clickEvent()
-                onOpenSheet(Sheets.Playlist)
-              },
-              enabled = playlistModeEnabled,
-              border =
-                if (hideBackground) {
-                  null
-                } else {
-                  BorderStroke(1.dp, playerButtonBorderColor())
-                },
-              modifier = Modifier.height(45.dp),
+            Column(
+              modifier = Modifier.padding(start = 4.dp),
             ) {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 14.dp),
+              val titleInteractionSource =
+                remember {
+                  androidx.compose.foundation.interaction
+                    .MutableInteractionSource()
+                }
+
+              Surface(
+                shape = CircleShape,
+                color =
+                  if (hideBackground) {
+                    Color.Transparent
+                  } else {
+                    playerButtonContainerColor()
+                  },
+                contentColor = if (hideBackground) controlColor else playerButtonContentColor(),
+                onClick = {
+                  clickEvent()
+                  onOpenSheet(Sheets.Playlist)
+                },
+                enabled = playlistModeEnabled,
+                border =
+                  if (hideBackground) {
+                    null
+                  } else {
+                    BorderStroke(1.dp, playerButtonBorderColor())
+                  },
+                modifier = Modifier.height(45.dp),
               ) {
-                Text(
-                  mediaTitle ?: "",
-                  maxLines = 1,
-                  overflow = TextOverflow.Ellipsis,
-                  style = MaterialTheme.typography.bodyMedium,
-                  modifier = Modifier.weight(1f, fill = false),
-                )
-                viewModel.getPlaylistInfo()?.let { playlistInfo ->
+                Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                  modifier = Modifier.padding(horizontal = 14.dp),
+                ) {
                   Text(
-                    " • $playlistInfo",
+                    mediaTitle ?: "",
                     maxLines = 1,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LocalContentColor.current.copy(alpha = 0.7f),
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f, fill = false),
                   )
+                  viewModel.getPlaylistInfo()?.let { playlistInfo ->
+                    Text(
+                      " • $playlistInfo",
+                      maxLines = 1,
+                      style = MaterialTheme.typography.bodySmall,
+                      color = LocalContentColor.current.copy(alpha = 0.7f),
+                    )
+                  }
                 }
               }
             }
           }
+        }
+
+        Spacer(modifier = Modifier.width(MaterialTheme.spacing.extraSmall))
+
+        ControlsGroup {
+          ControlsButton(
+            icon = Icons.RoundedFilled.Subtitles,
+            onClick = {
+              clickEvent()
+              onOpenSheet(Sheets.SubtitleTracks)
+            },
+            color = if (hideBackground) controlColor else playerButtonContentColor(),
+            title = stringResource(R.string.btn_label_subtitles),
+            modifier = Modifier.size(45.dp),
+          )
+          ControlsButton(
+            icon = Icons.RoundedFilled.Speed,
+            onClick = {
+              clickEvent()
+              onOpenSheet(Sheets.PlaybackSpeed)
+            },
+            color = if (hideBackground) controlColor else playerButtonContentColor(),
+            title = stringResource(R.string.btn_label_speed),
+            modifier = Modifier.size(45.dp),
+          )
+          ControlsButton(
+            icon = Icons.RoundedFilled.MoreVert,
+            onClick = {
+              clickEvent()
+              onOpenSheet(Sheets.More)
+            },
+            color = if (hideBackground) controlColor else playerButtonContentColor(),
+            title = stringResource(R.string.btn_label_more),
+            modifier = Modifier.size(45.dp),
+          )
         }
       }
 

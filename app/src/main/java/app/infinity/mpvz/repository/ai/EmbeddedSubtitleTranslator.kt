@@ -50,7 +50,7 @@ class EmbeddedSubtitleTranslator(
             val translated = client.newCall(
               Request.Builder().url(url).header("Accept", "application/json").get().build(),
             ).execute().use { response ->
-              val body = response.body?.string().orEmpty()
+              val body = response.body.string()
               check(response.isSuccessful) { "Translation endpoint returned HTTP ${response.code}" }
               json.parseToJsonElement(body).jsonArray.firstOrNull()?.jsonArray
                 ?.mapNotNull { segment -> segment.jsonArray.firstOrNull()?.jsonPrimitive?.content }

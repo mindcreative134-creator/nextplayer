@@ -80,7 +80,7 @@ object M3uPlaybackPolicy {
   fun shouldProxyHls(
     playableUri: String,
     mimeType: String? = null,
-    enableHlsProxy: Boolean = true,
+    enableHlsProxy: Boolean = false,
   ): Boolean {
     if (!enableHlsProxy) return false
     val lower = playableUri.lowercase()

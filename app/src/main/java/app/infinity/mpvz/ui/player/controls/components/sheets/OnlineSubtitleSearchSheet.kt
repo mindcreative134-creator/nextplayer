@@ -123,7 +123,9 @@ fun OnlineSubtitleSearchSheet(
       val keyboardController = LocalSoftwareKeyboardController.current
       val context = LocalContext.current
       val mediaInfo = remember(mediaTitle) { MediaInfoParser.parse(mediaTitle) }
-      var searchQuery by remember { mutableStateOf(mediaInfo.title) }
+      // Use parsed title if available, otherwise fall back to raw mediaTitle (e.g. content:// file names)
+      val effectiveTitle = mediaInfo.title.ifBlank { mediaTitle.trim() }
+      var searchQuery by remember(effectiveTitle) { mutableStateOf(effectiveTitle) }
       var selectedMovieTitle by remember { mutableStateOf<String?>(null) }
       val aiPreferences = koinInject<AiPreferences>()
       val aiService = koinInject<AiService>()
@@ -132,9 +134,10 @@ fun OnlineSubtitleSearchSheet(
 
       // Build the detected info string for display
       val detectedInfo =
-        remember(mediaInfo) {
+        remember(mediaInfo, mediaTitle) {
           buildString {
-            append(mediaInfo.title)
+            val displayTitle = mediaInfo.title.ifBlank { mediaTitle.trim() }
+            append(displayTitle)
             if (mediaInfo.season != null || mediaInfo.episode != null) {
               append(" • ")
               if (mediaInfo.season != null) append("S${String.format("%02d", mediaInfo.season)}")
@@ -144,23 +147,24 @@ fun OnlineSubtitleSearchSheet(
           }
         }
 
-      // Auto-trigger search on open
-      LaunchedEffect(mediaInfo) {
-        if (mediaInfo.title.isNotBlank()) {
-          onSearchMedia(mediaInfo.title)
+      // Auto-trigger search on open — fires when sheet opens with any non-blank title.
+      // Uses effectiveTitle so content:// URIs with display names also trigger search.
+      LaunchedEffect(effectiveTitle) {
+        if (effectiveTitle.isNotBlank()) {
+          onSearchMedia(effectiveTitle)
         }
       }
 
       fun runSearch() {
         selectedMovieTitle = null
-        val q = if (searchQuery.isNotBlank()) searchQuery else mediaInfo.title
+        val q = if (searchQuery.isNotBlank()) searchQuery else effectiveTitle
         searchQuery = q
         onSearchMedia(q)
         keyboardController?.hide()
       }
 
       fun formatWithAi() {
-        val input = if (searchQuery.isNotBlank()) searchQuery else mediaInfo.title
+        val input = if (searchQuery.isNotBlank()) searchQuery else effectiveTitle
         if (input.isBlank()) {
           Toast
             .makeText(

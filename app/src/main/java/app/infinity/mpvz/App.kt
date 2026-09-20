@@ -83,13 +83,15 @@ class App :
         app.infinity.mpvz.di.DownloadModule,
       )
     }
-    if (!BuildConfig.MPV_SUPPORTS_VULKAN) {
-      getKoin().get<DecoderPreferences>().useVulkan.set(false)
-    }
     registerActivityLifecycleCallbacks(this)
     Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
     startIdleMpvCoreReaper()
-    app.infinity.mpvz.ads.AdmobManager.initialize(this)
+    applicationScope.launch(Dispatchers.IO) {
+      if (!BuildConfig.MPV_SUPPORTS_VULKAN) {
+        getKoin().get<DecoderPreferences>().useVulkan.set(false)
+      }
+      app.infinity.mpvz.ads.AdmobManager.initialize(this@App)
+    }
 
     applicationScope.launch {
       runCatching {

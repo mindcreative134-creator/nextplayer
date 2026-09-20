@@ -40,7 +40,7 @@ class QuickDownloadActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     val sharedText = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
-    val sharedUri = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)?.toString().orEmpty()
+    val sharedUri = androidx.core.content.IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, android.net.Uri::class.java)?.toString().orEmpty()
     val sharedUrl = SharedUrlExtractor.normalizeInput(sharedText.ifBlank { sharedUri })
     val title = sharedUrl.substringAfterLast('/').substringBefore('?').ifBlank { "Shared video" }
     setContent {
@@ -69,9 +69,11 @@ private fun QuickDownloadPopup(
 ) {
   var selectedQuality by remember { mutableIntStateOf(-1) }
   val qualityOptions = listOf(-1, 2160, 1440, 1080, 720, 480, 360)
+  @Suppress("DEPRECATION")
+  val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
   ModalBottomSheet(
     onDismissRequest = onCancel,
-    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+    sheetState = sheetState,
   ) {
     Column(
       modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 12.dp),

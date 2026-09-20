@@ -149,7 +149,10 @@ private fun createBannerContainer(
   onFailed: () -> Unit,
   onActiveAdViewChanged: (AdView) -> Unit,
 ): FrameLayout {
+  val density = context.resources.displayMetrics.density
   val container = FrameLayout(context).apply {
+    minimumHeight = (50 * density).toInt()
+    minimumWidth = (320 * density).toInt()
     layoutParams = ViewGroup.LayoutParams(
       ViewGroup.LayoutParams.WRAP_CONTENT,
       ViewGroup.LayoutParams.WRAP_CONTENT,
