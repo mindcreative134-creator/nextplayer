@@ -102,7 +102,6 @@ object AboutScreen : Screen {
         ?.let { value -> if (BuildConfig.IS_PREVIEW_BUILD) value else value.substringBefore('-') }
         ?: BuildConfig.VERSION_NAME
     val buildType = BuildConfig.BUILD_TYPE
-    val githubRepoUrl = stringResource(R.string.github_repo_url)
     val updateViewModel: UpdateViewModel? =
       if (BuildConfig.ENABLE_UPDATE_FEATURE) {
         (context as? ComponentActivity)?.let { viewModel(it) }
@@ -195,7 +194,7 @@ object AboutScreen : Screen {
                       modifier = Modifier.matchParentSize(),
                       factory = { ctx ->
                         ImageView(ctx).apply {
-                        setImageResource(R.drawable.ic_launcher_user_logo)
+                        setImageResource(R.mipmap.ic_launcher)
                         scaleType = ImageView.ScaleType.CENTER_INSIDE
                         }
                       },
@@ -217,97 +216,11 @@ object AboutScreen : Screen {
                   Text(
                     text = "v$versionName $buildType",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = cs.onPrimaryContainer.copy(alpha = 0.85f),
-                  )
-                  Spacer(Modifier.height(8.dp))
-                  Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = cs.primary.copy(alpha = 0.16f),
-                  ) {
-                    Text(
-                      text =
-                        androidx.compose.ui.res
-                          .stringResource(app.infinity.mpvz.R.string.ui_by_ritesh_pandit),
-                      modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                      style = MaterialTheme.typography.titleSmall,
-                      fontWeight = FontWeight.SemiBold,
-                      color = cs.onPrimaryContainer,
-                    )
-                  }
-                }
-              }
-
-              Spacer(modifier = Modifier.height(20.dp))
-
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-              ) {
-                val btnContainer = cs.primary
-                val btnContent = cs.onPrimary
-                Button(
-                  onClick = { backstack.add(LibrariesScreen) },
-                  modifier =
-                    Modifier
-                      .weight(1f)
-                      .height(56.dp),
-                  shape = RoundedCornerShape(16.dp),
-                  colors =
-                    ButtonDefaults.buttonColors(
-                      containerColor = btnContainer,
-                      contentColor = btnContent,
-                    ),
-                ) {
-                  Icon(
-                    painter = painterResource(id = R.drawable.ic_library_cube),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
-                  Text(
-                    text = stringResource(id = R.string.pref_about_oss_libraries),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                  )
-                }
-
-                Button(
-                  onClick = {
-                    context.startActivity(
-                      Intent(
-                        Intent.ACTION_VIEW,
-                        githubRepoUrl.toUri(),
-                      ),
-                    )
-                  },
-                  modifier =
-                    Modifier
-                      .weight(1f)
-                      .height(56.dp),
-                  shape = RoundedCornerShape(16.dp),
-                  colors =
-                    ButtonDefaults.buttonColors(
-                      containerColor = btnContainer,
-                      contentColor = btnContent,
-                    ),
-                ) {
-                  Icon(
-                    painter = painterResource(id = R.drawable.ic_github),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
-                  Text(
-                    text =
-                      androidx.compose.ui.res
-                        .stringResource(app.infinity.mpvz.R.string.ui_github),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
                   )
                 }
               }
 
-              Spacer(modifier = Modifier.height(20.dp))
+              Spacer(modifier = Modifier.height(16.dp))
 
               Column(
                 modifier =
@@ -315,7 +228,7 @@ object AboutScreen : Screen {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .clickable {
-                      SafeClipboard.copyPlainText(context, "Mpv∞_device_info", collectDeviceInfo())
+                      SafeClipboard.copyPlainText(context, "NextPlayer_device_info", collectDeviceInfo())
                     },
               ) {
                 Row(
@@ -347,144 +260,6 @@ object AboutScreen : Screen {
                   color = cs.onPrimaryContainer.copy(alpha = 0.85f),
                 )
               }
-            }
-          }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // Support / Donation Section
-        PreferenceSectionHeader(title = stringResource(R.string.pref_section_support))
-        PreferenceCard {
-          Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              Icon(
-                imageVector = Icons.RoundedFilled.MonetizationOn,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = cs.error,
-              )
-              Spacer(Modifier.width(10.dp))
-              Text(
-                text =
-                      "Support ZHINFINITY",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = cs.onSurface,
-              )
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-              text =
-                "Support the work of ZHINFINITY on Mpv∞.",
-              style = MaterialTheme.typography.bodyMedium,
-              color = cs.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(14.dp))
-            Surface(
-              shape = RoundedCornerShape(12.dp),
-              color = cs.primaryContainer.copy(alpha = 0.4f),
-              modifier = Modifier.fillMaxWidth(),
-            ) {
-              Row(
-                modifier =
-                  Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                      SafeClipboard.copyPlainText(
-                        context = context,
-                        label = "Mpv∞_support_link",
-                        text = "zhjjk001-1@oksbi",
-                        showToast = false,
-                      )
-                      Toast
-                        .makeText(
-                          context,
-                          context.getString(app.infinity.mpvz.R.string.ui_support_link_copied),
-                          Toast.LENGTH_SHORT,
-                        ).show()
-                    }.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-              ) {
-                Column(modifier = Modifier.weight(1f)) {
-                  Text(
-                    text =
-                      androidx.compose.ui.res
-                        .stringResource(app.infinity.mpvz.R.string.ui_support_link),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = cs.outline,
-                  )
-                  Spacer(Modifier.height(12.dp))
-                  Text(
-                      text = "zhjjk001-1@oksbi",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = cs.onSurface,
-                  )
-                }
-                Icon(
-                  imageVector = Icons.RoundedFilled.ContentCopy,
-                  contentDescription =
-                    "Copy UPI ID",
-                  modifier = Modifier.size(20.dp),
-                  tint = cs.primary,
-                )
-              }
-            }
-            Spacer(Modifier.height(12.dp))
-            Button(
-              onClick = {
-                try {
-                  val supportIntent =
-                    Intent(
-                      Intent.ACTION_VIEW,
-                      "https://ko-fi.com/ZHINFINITY".toUri(),
-                    )
-                  context.startActivity(supportIntent)
-                } catch (_: Exception) {
-                  Toast
-                    .makeText(
-                      context,
-                      "Unable to open support link",
-                      Toast.LENGTH_SHORT,
-                    ).show()
-                }
-              },
-              modifier = Modifier.fillMaxWidth().height(50.dp),
-              shape = RoundedCornerShape(12.dp),
-              colors =
-                ButtonDefaults.buttonColors(
-                  containerColor = cs.error,
-                  contentColor = cs.onError,
-                ),
-              elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            ) {
-              Icon(Icons.RoundedFilled.MonetizationOn, null, modifier = Modifier.size(18.dp))
-              Spacer(Modifier.width(8.dp))
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.infinity.mpvz.R.string.ui_visit_github),
-                fontWeight = FontWeight.SemiBold,
-              )
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-              Button(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, "https://ko-fi.com/zhinfinity".toUri())) },
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = cs.surfaceVariant, contentColor = cs.onSurfaceVariant),
-              ) { Text("Ko-fi") }
-              Button(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, "https://paypal.me/InfinityxEternity".toUri())) },
-                modifier = Modifier.weight(1f).height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = cs.surfaceVariant, contentColor = cs.onSurfaceVariant),
-              ) { Text("PayPal") }
             }
           }
         }

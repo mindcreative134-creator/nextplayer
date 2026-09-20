@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Group rotated -35 degrees around center (54,54) for dynamic 3D tilt -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:rotation="-35">
+
+        <!-- Outer Glowing Ring Blur / Ambient Bloom -->
+        <path
+            android:pathData="M54,23 C71,23 85,36.5 85,54 C85,71.5 71,85 54,85 C37,85 23,71.5 23,54 C23,36.5 37,23 54,23 Z"
+            android:strokeWidth="14"
+            android:strokeColor="#30C084FC"
+            android:fillColor="#00000000" />
+
+        <!-- Neon Pink / Magenta Inner Glow Rim -->
+        <path
+            android:pathData="M54,27 C68.5,27 81,39 81,54 C81,69 68.5,81 54,81 C39.5,81 27,69 27,54 C27,39 39.5,27 54,27 Z"
+            android:strokeWidth="9"
+            android:fillColor="#00000000">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="sweep"
+                    android:centerX="54"
+                    android:centerY="54"
+                    android:startColor="#EC4899"
+                    android:centerColor="#A855F7"
+                    android:endColor="#EC4899" />
+            </aapt:attr>
+        </path>
+
+        <!-- Main Tilted Glowing Torus Ring (Electric Blue to Lavender Violet to Hot Pink) -->
+        <path
+            android:pathData="M54,27 C68.5,27 81,39 81,54 C81,69 68.5,81 54,81 C39.5,81 27,69 27,54 C27,39 39.5,27 54,27 Z"
+            android:strokeWidth="6.5"
+            android:fillColor="#00000000">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="27"
+                    android:startY="27"
+                    android:endX="81"
+                    android:endY="81"
+                    android:startColor="#60A5FA"
+                    android:centerColor="#C084FC"
+                    android:endColor="#F43F5E" />
+            </aapt:attr>
+        </path>
+
+        <!-- Specular Highlight Sheen on Upper Ring -->
+        <path
+            android:pathData="M33,38 C38,30 45.5,27 54,27 C62.5,27 70,30 75,38"
+            android:strokeWidth="2.0"
+            android:strokeLineCap="round"
+            android:strokeColor="#80FFFFFF"
+            android:fillColor="#00000000" />
+
+    </group>
+
+    <!-- Center Play Triangle Soft Drop Shadow -->
+    <path
+        android:pathData="M48.5,42.5 L67.5,53.5 C69.5,54.7 69.5,57.3 67.5,58.5 L48.5,69.5 C46.5,70.7 44,69.2 44,67 L44,45 C44,42.8 46.5,41.3 48.5,42.5 Z"
+        android:fillColor="#40000000" />
+
+    <!-- Center Pure Glossy White-to-Soft-Lilac Play Button -->
+    <path
+        android:pathData="M47,41 L66,52 C68,53.2 68,55.8 66,57 L47,68 C45,69.2 42.5,67.7 42.5,65.5 L42.5,43.5 C42.5,41.3 45,39.8 47,41 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="42.5"
+                android:startY="41"
+                android:endX="66"
+                android:endY="68"
+                android:startColor="#FFFFFF"
+                android:centerColor="#FAF5FF"
+                android:endColor="#E9D5FF" />
+        </aapt:attr>
+    </path>
+
+    <!-- Center Play Triangle Subtle Top Highlight -->
+    <path
+        android:pathData="M44,43.5 L66,54.5"
+        android:strokeWidth="1.0"
+        android:strokeColor="#50FFFFFF"
+        android:fillColor="#00000000" />
+
+</vector>

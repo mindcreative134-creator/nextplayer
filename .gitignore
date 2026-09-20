@@ -14,6 +14,8 @@ build/
 
 # Local configuration
 local.properties
+releasekey/
+.vscode/
 
 # APK / AAB outputs
 *.apk

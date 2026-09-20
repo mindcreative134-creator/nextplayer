@@ -54,6 +54,10 @@ private val DEFAULT_CATALOG_SOURCES = listOf(
   CatalogSource("kitsu-anime", "Kitsu Anime", "https://anime-kitsu.strem.fun/manifest.json"),
 )
 
+private val DEFAULT_RESOLVERS = listOf(
+  ResolverEndpoint("https://torrentio.strem.fun", true),
+)
+
 class CatalogSettings(context: Context) {
   private val prefs = EncryptedSharedPreferences.create(
     context,
@@ -71,9 +75,13 @@ class CatalogSettings(context: Context) {
   var autoChooseBestTorrent: Boolean
     get() = prefs.getBoolean("auto_choose_best_torrent", false)
     set(value) = prefs.edit().putBoolean("auto_choose_best_torrent", value).apply()
-  fun resolvers(): List<ResolverEndpoint> = prefs.getStringSet("resolver_endpoints", emptySet()).orEmpty().mapNotNull { encoded ->
-    val parts = encoded.split("|", limit = 2)
-    parts.getOrNull(0)?.takeIf { it.isNotBlank() }?.let { ResolverEndpoint(sanitizeResolverBaseUrl(it), parts.getOrNull(1)?.toBooleanStrictOrNull() ?: true) }
+  fun resolvers(): List<ResolverEndpoint> {
+    val set = prefs.getStringSet("resolver_endpoints", null) ?: return DEFAULT_RESOLVERS
+    val list = set.mapNotNull { encoded ->
+      val parts = encoded.split("|", limit = 2)
+      parts.getOrNull(0)?.takeIf { it.isNotBlank() }?.let { ResolverEndpoint(sanitizeResolverBaseUrl(it), parts.getOrNull(1)?.toBooleanStrictOrNull() ?: true) }
+    }
+    return if (list.isEmpty()) DEFAULT_RESOLVERS else list
   }
   fun saveResolvers(value: List<ResolverEndpoint>) {
     prefs.edit().putStringSet("resolver_endpoints", value.mapNotNull { endpoint ->
@@ -510,14 +518,24 @@ class CloudStreamResolver(private val settings: CatalogSettings) : StreamResolve
     is JsonObject -> listOfNotNull(
       (element["url"] ?: element["externalUrl"] ?: element["stream"] ?: element["magnet"])
         ?.jsonPrimitive?.content?.let { url ->
-          val title = element["title"]?.jsonPrimitive?.content ?: element["name"]?.jsonPrimitive?.content ?: "Stream"
+          val rawTitle = element["title"]?.jsonPrimitive?.content ?: element["name"]?.jsonPrimitive?.content ?: "Stream"
+          val rawName = element["name"]?.jsonPrimitive?.content.orEmpty()
+          val seeders = element["seeders"]?.jsonPrimitive?.intOrNull
+            ?: element["peers"]?.jsonPrimitive?.intOrNull
+            ?: Regex("[👤👥]\\s*(\\d+)").find(rawTitle)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            ?: 0
+          val size = element["size"]?.jsonPrimitive?.content
+            ?: Regex("[💾📁]\\s*([0-9.]+\\s*(?:TB|GB|MB|KB))", RegexOption.IGNORE_CASE).find(rawTitle)?.groupValues?.getOrNull(1)
+            ?: Regex("([0-9.]+\\s*(?:TB|GB|MB|KB))", RegexOption.IGNORE_CASE).find(rawTitle)?.groupValues?.getOrNull(1)
+          val source = element["source"]?.jsonPrimitive?.content
+            ?: Regex("[⚙️]\\s*([\\w.-]+)").find(rawTitle)?.groupValues?.getOrNull(1)
           StreamOption(
             url = url,
-            title = title,
-            qualityRank = qualityRank("$title $url"),
-            seeders = element["seeders"]?.jsonPrimitive?.intOrNull ?: element["peers"]?.jsonPrimitive?.intOrNull ?: 0,
-            size = element["size"]?.jsonPrimitive?.content,
-            source = element["source"]?.jsonPrimitive?.content,
+            title = rawTitle,
+            qualityRank = qualityRank("$rawTitle $rawName $url"),
+            seeders = seeders,
+            size = size,
+            source = source,
             audioCodec = element["audioCodec"]?.jsonPrimitive?.contentOrNull,
             videoCodec = element["videoCodec"]?.jsonPrimitive?.contentOrNull,
             torrentFileIndex = element["fileIdx"]?.jsonPrimitive?.intOrNull,
@@ -526,14 +544,24 @@ class CloudStreamResolver(private val settings: CatalogSettings) : StreamResolve
           )
         }
         ?: element["infoHash"]?.jsonPrimitive?.content?.let { hash ->
-          val title = element["title"]?.jsonPrimitive?.content ?: element["name"]?.jsonPrimitive?.content ?: "Torrent"
+          val rawTitle = element["title"]?.jsonPrimitive?.content ?: element["name"]?.jsonPrimitive?.content ?: "Torrent"
+          val rawName = element["name"]?.jsonPrimitive?.content.orEmpty()
+          val seeders = element["seeders"]?.jsonPrimitive?.intOrNull
+            ?: element["peers"]?.jsonPrimitive?.intOrNull
+            ?: Regex("[👤👥]\\s*(\\d+)").find(rawTitle)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            ?: 0
+          val size = element["size"]?.jsonPrimitive?.content
+            ?: Regex("[💾📁]\\s*([0-9.]+\\s*(?:TB|GB|MB|KB))", RegexOption.IGNORE_CASE).find(rawTitle)?.groupValues?.getOrNull(1)
+            ?: Regex("([0-9.]+\\s*(?:TB|GB|MB|KB))", RegexOption.IGNORE_CASE).find(rawTitle)?.groupValues?.getOrNull(1)
+          val source = element["source"]?.jsonPrimitive?.content
+            ?: Regex("[⚙️]\\s*([\\w.-]+)").find(rawTitle)?.groupValues?.getOrNull(1)
           StreamOption(
             url = "magnet:?xt=urn:btih:${hash.trim()}",
-            title = title,
-            qualityRank = qualityRank("$title ${element["title"]?.jsonPrimitive?.content.orEmpty()}"),
-            seeders = element["seeders"]?.jsonPrimitive?.intOrNull ?: element["peers"]?.jsonPrimitive?.intOrNull ?: 0,
-            size = element["size"]?.jsonPrimitive?.content,
-            source = element["source"]?.jsonPrimitive?.content,
+            title = rawTitle,
+            qualityRank = qualityRank("$rawTitle $rawName"),
+            seeders = seeders,
+            size = size,
+            source = source,
             audioCodec = element["audioCodec"]?.jsonPrimitive?.contentOrNull,
             videoCodec = element["videoCodec"]?.jsonPrimitive?.contentOrNull,
             torrentFileIndex = element["fileIdx"]?.jsonPrimitive?.intOrNull,
@@ -548,11 +576,11 @@ class CloudStreamResolver(private val settings: CatalogSettings) : StreamResolve
   private fun qualityRank(value: String): Int {
     val normalized = value.lowercase()
     return when {
-      "2160p" in normalized || "4k" in normalized -> 2160
-      "1440p" in normalized -> 1440
-      "1080p" in normalized -> 1080
-      "720p" in normalized -> 720
-      "480p" in normalized -> 480
+      "2160p" in normalized || "4k" in normalized || "uhd" in normalized -> 2160
+      "1440p" in normalized || "2k" in normalized -> 1440
+      "1080p" in normalized || "fhd" in normalized -> 1080
+      "720p" in normalized || "hd" in normalized -> 720
+      "480p" in normalized || "sd" in normalized -> 480
       else -> 0
     }
   }

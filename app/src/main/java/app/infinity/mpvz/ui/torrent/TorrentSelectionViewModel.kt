@@ -92,13 +92,18 @@ class TorrentSelectionViewModel(
   private var activePreparationId: String? = null
   private var handedToPlayer = false
 
+  fun resetForRetry() {
+    input = null
+    _uiState.value = TorrentSelectionUiState.Loading
+  }
+
   fun initialize(value: TorrentSelectionInput) {
-    if (input != null) return
+    if (input != null && _uiState.value !is TorrentSelectionUiState.Error) return
     open(value)
   }
 
   fun initializeResolver(value: TorrentSelectionInput, streams: List<app.infinity.mpvz.catalog.StreamOption>) {
-    if (input != null) return
+    if (input != null && _uiState.value !is TorrentSelectionUiState.Error) return
     input = value
     if (streams.isEmpty()) {
       _uiState.value = TorrentSelectionUiState.Error("Resolver returned no torrents for this title.")
@@ -106,7 +111,8 @@ class TorrentSelectionViewModel(
     }
     val files = streams.mapIndexed { index, stream ->
       val episodePrefix = stream.season?.let { season -> stream.episode?.let { episode -> "S%02dE%02d ".format(season, episode) } }.orEmpty()
-      TorrentFileItem(index, "$episodePrefix${stream.title}", "$episodePrefix${stream.title}", parseResolverSize(stream.size), "video/x-matroska")
+      val cleanTitle = stream.title.lines().firstOrNull { it.isNotBlank() }?.trim() ?: stream.title
+      TorrentFileItem(index, "$episodePrefix$cleanTitle", "$episodePrefix${stream.title}", parseResolverSize(stream.size), "video/x-matroska")
     }
     val resolverInputs = streams.mapIndexed { index, stream ->
       index to value.copy(

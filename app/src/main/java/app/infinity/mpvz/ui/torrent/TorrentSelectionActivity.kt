@@ -37,6 +37,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.koin.android.ext.android.inject
 
 class TorrentSelectionActivity : AppCompatActivity() {
@@ -98,7 +100,8 @@ class TorrentSelectionActivity : AppCompatActivity() {
       val state by viewModel.uiState.collectAsState()
       LaunchedEffect(viewModel) { viewModel.launches.collect(::openPlayer) }
       MpvInfinityTheme {
-        LaunchedEffect(resolverItem) {
+        var retryTrigger by remember { mutableStateOf(0) }
+        LaunchedEffect(resolverItem, retryTrigger) {
           if (resolverItem != null && source.isNullOrBlank()) {
             val resolver = CloudStreamResolver(app.infinity.mpvz.catalog.CatalogSettings(applicationContext))
             val completeSeasons = if (resolverItem.type == MediaType.TV && !resolverItem.providerId.isNullOrBlank()) {
@@ -113,21 +116,34 @@ class TorrentSelectionActivity : AppCompatActivity() {
             val resolvedStreams = if (completeItem.type == MediaType.MOVIE) {
               resolver.resolve(completeItem, null, null)
             } else {
-              // HentaiStream exposes its concrete episode IDs through the addon metadata
-              // request made by resolve(item, null, null). The catalog season numbers alone
-              // are not valid HentaiStream resource IDs, so per-episode probing can return 0.
               val metadataResults = runCatching { resolver.resolve(completeItem, null, null) }
                 .getOrDefault(emptyList())
               if (metadataResults.isNotEmpty()) metadataResults else coroutineScope {
-                completeItem.seasons.flatMap { season ->
-                  season.episodes.map { episode ->
-                    async {
-                      runCatching { resolver.resolve(completeItem, season.number, episode.number) }
-                        .getOrDefault(emptyList())
-                        .map { it.copy(season = season.number, episode = episode.number) }
-                    }
+                val targetSeason = intent.getIntExtra("episode_season", -1).takeIf { it > 0 }
+                val targetEpisode = intent.getIntExtra("episode_number", -1).takeIf { it > 0 }
+                if (targetSeason != null && targetEpisode != null) {
+                  runCatching { resolver.resolve(completeItem, targetSeason, targetEpisode) }
+                    .getOrDefault(emptyList())
+                    .map { it.copy(season = targetSeason, episode = targetEpisode) }
+                } else {
+                  val seasonsToQuery = if (targetSeason != null) {
+                    completeItem.seasons.filter { it.number == targetSeason }
+                  } else {
+                    completeItem.seasons.take(1)
                   }
-                }.awaitAll().flatten()
+                  val semaphore = Semaphore(3)
+                  seasonsToQuery.flatMap { season ->
+                    season.episodes.map { episode ->
+                      async {
+                        semaphore.withPermit {
+                          runCatching { resolver.resolve(completeItem, season.number, episode.number) }
+                            .getOrDefault(emptyList())
+                            .map { it.copy(season = season.number, episode = episode.number) }
+                        }
+                      }
+                    }
+                  }.awaitAll().flatten()
+                }
               }
             }.distinctBy { stream -> stream.url.substringBefore("&mpvinfinity=") }
             val allStreams = resolvedStreams.map { stream ->
@@ -152,7 +168,14 @@ class TorrentSelectionActivity : AppCompatActivity() {
         TorrentSelectionScreen(
           state = state,
           onBack = ::closePicker,
-          onRetry = viewModel::retry,
+          onRetry = {
+            if (resolverItem != null && source.isNullOrBlank()) {
+              viewModel.resetForRetry()
+              retryTrigger++
+            } else {
+              viewModel.retry()
+            }
+          },
           onSelect = viewModel::select,
         )
       }
@@ -218,8 +241,10 @@ class TorrentSelectionActivity : AppCompatActivity() {
       action = Intent.ACTION_VIEW
       data = Uri.parse(request.source)
       setClass(this@TorrentSelectionActivity, PlayerActivity::class.java)
-      addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-      putExtra("title", request.file.name)
+      addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+      if (data?.scheme.equals("content", ignoreCase = true)) {
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }
       putExtra(MediaUtils.EXTRA_MEDIA_TITLE, request.file.name)
       putExtra(MediaUtils.EXTRA_TORRENT_SOURCE, request.source)
       putExtra(MediaUtils.EXTRA_TORRENT_FILE_INDEX, request.file.index)

@@ -56,7 +56,7 @@ internal fun Uri.extractLocalPath(): String? {
     if (index != -1) {
       val rawPath = decoded.substring(index)
       val path = rawPath.substringBefore('?').substringBefore('#')
-      if (File(path).canRead()) {
+      if (File(path).exists()) {
         return path
       }
     }
@@ -97,7 +97,7 @@ private fun Uri.tryFileDescriptorPath(
   runCatching {
     val pfd = context.contentResolver.openFileDescriptor(this, "r") ?: return null
     val path = Utils.findRealPath(pfd.fd)
-    if (path != null && File(path).canRead()) {
+    if (path != null && File(path).exists()) {
       pfd.close()
       Log.d(TAG, "Resolved via file descriptor: $path")
       path
@@ -126,7 +126,7 @@ private fun Uri.tryMediaStoreQuery(context: Context): String? =
             cursor
               .getString(columnIndex)
               ?.takeIf { path ->
-                path.isNotBlank() && File(path).canRead()
+                path.isNotBlank() && File(path).exists()
               }?.also {
                 Log.d(TAG, "Resolved via MediaStore: $it")
               }
@@ -179,14 +179,14 @@ private fun Uri.tryDocumentUriParsing(context: Context): String? {
 private fun tryPrimaryStoragePath(docId: String): String? {
   val path = docId.substringAfter(StoragePaths.PRIMARY_PREFIX)
   val fullPath = "${StoragePaths.PRIMARY_STORAGE}/$path"
-  return fullPath.takeIf { File(it).canRead() }?.also {
+  return fullPath.takeIf { File(it).exists() }?.also {
     Log.d(TAG, "Resolved document URI to primary storage: $it")
   }
 }
 
 private fun tryRawPath(docId: String): String? {
   val rawPath = docId.substringAfter(StoragePaths.RAW_PREFIX)
-  return rawPath.takeIf { File(it).canRead() }?.also {
+  return rawPath.takeIf { File(it).exists() }?.also {
     Log.d(TAG, "Resolved document URI from raw path: $it")
   }
 }
@@ -207,7 +207,7 @@ private fun tryExternalStoragePaths(docId: String): String? {
       "${StoragePaths.MEDIA_RW}/$path",
     )
 
-  return possiblePaths.firstOrNull { File(it).canRead() }?.also {
+  return possiblePaths.firstOrNull { File(it).exists() }?.also {
     Log.d(TAG, "Resolved document URI to: $it")
   }
 }
