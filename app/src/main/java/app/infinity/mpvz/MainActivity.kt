@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-package app.infinity.mpvz
+package com.kxplayer.app
 
 import android.Manifest
 import android.content.Intent
@@ -88,7 +88,6 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import app.infinity.mpvz.ui.player.MPVPipHelper
@@ -130,52 +129,19 @@ private fun screenNavTransition(
   val scaleExitSpec = tween<Float>(durationMillis = durationMs, easing = FastOutLinearInEasing)
 
   return when (style) {
-    NavigationAnimStyle.None ->
-      EnterTransition.None togetherWith ExitTransition.None
-
-    NavigationAnimStyle.Minimal ->
-      fadeIn(tween(durationMillis = durationMs, easing = LinearOutSlowInEasing)) togetherWith
-        fadeOut(tween(durationMillis = durationMs, easing = FastOutLinearInEasing))
-
-    NavigationAnimStyle.FlipFade ->
-      (
-        scaleIn(scaleEnterSpec, initialScale = 0.94f) + fadeIn(alphaEnterSpec)
-      ) togetherWith
-        (
-          scaleOut(scaleExitSpec, targetScale = 1.06f) + fadeOut(alphaExitSpec)
-        )
-
-    NavigationAnimStyle.Depth ->
-      (
-        slideInHorizontally(enterSpec) {
-          it * dir
-        } + fadeIn(alphaEnterSpec)
-      ) togetherWith
-        (
-          slideOutHorizontally(exitSpec) { (-it * 0.25f * dir).toInt() } +
-            scaleOut(scaleExitSpec, targetScale = 0.92f) + fadeOut(alphaExitSpec)
-        )
-
-    NavigationAnimStyle.Elastic ->
-      (
-        slideInHorizontally(enterSpec) { it * dir } + fadeIn(alphaEnterSpec)
-      ) togetherWith
-        (
-          slideOutHorizontally(exitSpec) { (-it / 3 * dir) } + fadeOut(alphaExitSpec)
-        )
-
-    NavigationAnimStyle.Default ->
-      if (forward) {
-        slideInHorizontally(enterSpec) { it } togetherWith slideOutHorizontally(exitSpec) { -it / 8 }
-      } else {
-        slideInHorizontally(enterSpec) { -it / 5 } togetherWith slideOutHorizontally(exitSpec) { it }
-      }
+    NavigationAnimStyle.None -> EnterTransition.None togetherWith ExitTransition.None
+    NavigationAnimStyle.Minimal -> fadeIn(tween(durationMillis = durationMs, easing = LinearOutSlowInEasing)) togetherWith fadeOut(tween(durationMillis = durationMs, easing = FastOutLinearInEasing))
+    NavigationAnimStyle.FlipFade -> (scaleIn(scaleEnterSpec, initialScale = 0.94f) + fadeIn(alphaEnterSpec)) togetherWith (scaleOut(scaleExitSpec, targetScale = 1.06f) + fadeOut(alphaExitSpec))
+    NavigationAnimStyle.Depth -> (slideInHorizontally(enterSpec) { it * dir } + fadeIn(alphaEnterSpec)) togetherWith (slideOutHorizontally(exitSpec) { (-it * 0.25f * dir).toInt() } + scaleOut(scaleExitSpec, targetScale = 0.92f) + fadeOut(alphaExitSpec))
+    NavigationAnimStyle.Elastic -> (slideInHorizontally(enterSpec) { it * dir } + fadeIn(alphaEnterSpec)) togetherWith (slideOutHorizontally(exitSpec) { (-it / 3 * dir) } + fadeOut(alphaExitSpec))
+    NavigationAnimStyle.Default -> if (forward) {
+      slideInHorizontally(enterSpec) { it } togetherWith slideOutHorizontally(exitSpec) { -it / 8 }
+    } else {
+      slideInHorizontally(enterSpec) { -it / 5 } togetherWith slideOutHorizontally(exitSpec) { it }
+    }
   }
 }
 
-/**
- * Main entry point for the application
- */
 class MainActivity : AppCompatActivity() {
   private val appearancePreferences by inject<AppearancePreferences>()
   private val playerPreferences by inject<PlayerPreferences>()
@@ -187,7 +153,6 @@ class MainActivity : AppCompatActivity() {
   private var isExpandingFromPip by mutableStateOf(false)
   private var openDownloadsFromIntent by mutableStateOf(false)
 
-  // Register the ActivityResultLauncher at class level
   private val mediaAccessLauncher =
     registerForActivityResult(
       ActivityResultContracts.StartIntentSenderForResult(),
@@ -208,23 +173,20 @@ class MainActivity : AppCompatActivity() {
     PermissionUtils.setMediaAccessLauncher(mediaAccessLauncher)
 
     applyEdgeToEdge(
-      isDarkMode =
-        resolveIsDarkMode(
-          darkMode = appearancePreferences.darkMode.get(),
-          isSystemInDarkTheme = isSystemInDarkThemeFromResources(),
-        ),
+      isDarkMode = resolveIsDarkMode(
+        darkMode = appearancePreferences.darkMode.get(),
+        isSystemInDarkTheme = isSystemInDarkThemeFromResources(),
+      ),
     )
 
     setContent {
-      // Set up theme and edge-to-edge display
       val dark by appearancePreferences.darkMode.collectAsState()
       val networkStreamingEnabled by appearancePreferences.showNetworkTab.collectAsState()
       val sessionState by PlaybackSession.state.collectAsState()
       val enableVideoMiniPlayer by playerPreferences.enableVideoMiniPlayer.collectAsState()
       val autoPiPOnNavigation by playerPreferences.autoPiPOnNavigation.collectAsState()
       val trackListNode by PlaybackSession.propNode["track-list"].collectAsState()
-      val rendererNoticePreferences =
-        remember { getSharedPreferences(RENDERER_NOTICE_PREFERENCES, MODE_PRIVATE) }
+      val rendererNoticePreferences = remember { getSharedPreferences(RENDERER_NOTICE_PREFERENCES, MODE_PRIVATE) }
       var showRendererBuildNotice by remember {
         mutableStateOf(
           !BuildConfig.MPV_SUPPORTS_VULKAN &&
@@ -261,14 +223,6 @@ class MainActivity : AppCompatActivity() {
         applyEdgeToEdge(isDarkMode)
       }
 
-      // Auto-connect to saved network connections.
-      // Gated behind both the user setting and a per-process flag so we only
-      // run SMB/FTP/WebDAV handshakes once per cold start, and only after the
-      // first frame has drawn (post-delay(500)). Previously this fired on every
-      // MainActivity recreation (config change, process restart, etc.) and
-      // re-handshaked every auto-connect entry, wasting battery and bandwidth
-      // even if the user never opened the Network tab.
-      // See issue 1.6 in the startup audit.
       LaunchedEffect(networkStreamingEnabled) {
         if (networkStreamingEnabled) {
           (application as? App)?.autoConnectNetworksOnce()
@@ -276,12 +230,7 @@ class MainActivity : AppCompatActivity() {
       }
 
       if (isPipMode || isExpandingFromPip) {
-        Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-          contentAlignment = Alignment.Center,
-        ) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
           if (isPipMode) {
             AndroidView(
               modifier = Modifier.fillMaxSize(),
@@ -297,12 +246,7 @@ class MainActivity : AppCompatActivity() {
                       )
                     }
 
-                    override fun surfaceChanged(
-                      holder: SurfaceHolder,
-                      format: Int,
-                      width: Int,
-                      height: Int,
-                    ) {
+                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
                       if (holder.surface.isValid) {
                         PlaybackSession.resizeSurface(width, height, owner = this@apply)
                       }
@@ -342,9 +286,7 @@ class MainActivity : AppCompatActivity() {
                 )
               },
               confirmButton = {
-                TextButton(onClick = acknowledgeNotice) {
-                  Text(getString(R.string.generic_ok))
-                }
+                TextButton(onClick = acknowledgeNotice) { Text(getString(R.string.generic_ok)) }
               },
             )
           }
@@ -396,10 +338,7 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
-  override fun onPictureInPictureModeChanged(
-    isInPictureInPictureMode: Boolean,
-    newConfig: Configuration,
-  ) {
+  override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
     super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     this.isPipMode = isInPictureInPictureMode
     pipHelper.onPictureInPictureModeChanged(isInPictureInPictureMode)
@@ -529,12 +468,7 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
-
-
-  private fun resolveIsDarkMode(
-    darkMode: DarkMode,
-    isSystemInDarkTheme: Boolean,
-  ): Boolean = darkMode == DarkMode.Dark || (darkMode == DarkMode.System && isSystemInDarkTheme)
+  private fun resolveIsDarkMode(darkMode: DarkMode, isSystemInDarkTheme: Boolean): Boolean = darkMode == DarkMode.Dark || (darkMode == DarkMode.System && isSystemInDarkTheme)
 
   private fun isSystemInDarkThemeFromResources(): Boolean =
     (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
@@ -562,13 +496,9 @@ class MainActivity : AppCompatActivity() {
     const val SYSTEM_BAR_THEME_SWITCH_PROGRESS = 0.55f
   }
 
-  /**
-   * Navigator that handles screen transitions and provides shared states
-   */
   @Composable
   fun Navigator() {
     val backstack = rememberNavBackStack(MainScreen)
-
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
 
@@ -583,7 +513,6 @@ class MainActivity : AppCompatActivity() {
         BuildConfig.VERSION_NAME.substringBefore('-')
       }
 
-    // Conditionally initialize update feature based on build config
     val updateViewModel: UpdateViewModel? =
       if (BuildConfig.ENABLE_UPDATE_FEATURE) {
         viewModel(context as ComponentActivity)
@@ -591,9 +520,6 @@ class MainActivity : AppCompatActivity() {
         null
       }
 
-    // These flows are only fallback state for builds where the updater is compiled out. Remember
-    // them once so navigator recompositions do not allocate three new StateFlow instances and
-    // create fresh collectAsState subscriptions.
     val fallbackUpdateState = remember { MutableStateFlow<UpdateViewModel.UpdateState>(UpdateViewModel.UpdateState.Idle) }
     val fallbackIsDownloading = remember { MutableStateFlow(false) }
     val fallbackDownloadProgress = remember { MutableStateFlow(0f) }
@@ -601,10 +527,7 @@ class MainActivity : AppCompatActivity() {
     val isDownloading by (updateViewModel?.isDownloading ?: fallbackIsDownloading).collectAsState()
     val downloadProgress by (updateViewModel?.downloadProgress ?: fallbackDownloadProgress).collectAsState()
 
-    // Provide both LocalBackStack and the LazyList/Grid states to all screens
-    CompositionLocalProvider(
-      LocalBackStack provides typedBackstack,
-    ) {
+    CompositionLocalProvider(LocalBackStack provides typedBackstack) {
       val hasNavEntries = typedBackstack.isNotEmpty()
 
       LaunchedEffect(hasNavEntries) {
@@ -633,10 +556,7 @@ class MainActivity : AppCompatActivity() {
             },
             entryProvider = { route ->
               NavEntry(route) {
-                Surface(
-                  modifier = Modifier.fillMaxSize(),
-                  color = MaterialTheme.colorScheme.background,
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                   route.Content()
                 }
               }
@@ -644,9 +564,7 @@ class MainActivity : AppCompatActivity() {
             sizeTransform = null,
             transitionSpec = { screenNavTransition(forward = true, style = appNavStyle, speed = animSpeed) },
             popTransitionSpec = { screenNavTransition(forward = false, style = appNavStyle, speed = animSpeed) },
-            predictivePopTransitionSpec = { _: Int ->
-              screenNavTransition(forward = false, style = appNavStyle, speed = animSpeed)
-            },
+            predictivePopTransitionSpec = { _: Int -> screenNavTransition(forward = false, style = appNavStyle, speed = animSpeed) },
           )
 
           val miniPlayerConfig = LocalConfiguration.current
@@ -654,96 +572,33 @@ class MainActivity : AppCompatActivity() {
           val isTablet = miniPlayerConfig.smallestScreenWidthDp >= 600
           val isDualPane = NavigationBarState.isDualPaneFolderSelected
 
-          val miniPlayerModifier =
-            when {
-              // Dual-pane tablets: the mini player lives inside the 2nd (right) pane.
-              isDualPane ->
-                Modifier
-                  .align(Alignment.BottomEnd)
-                  .fillMaxWidth(0.6f)
-                  .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(bottom = 12.dp, start = 12.dp, end = 12.dp)
+          val miniPlayerModifier = when {
+            isDualPane -> Modifier.align(Alignment.BottomEnd).fillMaxWidth(0.6f).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 12.dp, start = 12.dp, end = 12.dp)
+            isPortrait && !isTablet -> Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars).padding(start = 12.dp, end = 12.dp, bottom = (if (NavigationBarState.isNavBarVisible) NavigationBarState.navigationBarClearance else 12.dp) + (if (NavigationBarState.isInSelectionMode) NavigationBarState.selectionBarClearance else 0.dp))
+            else -> {
+              val isNavBarOnScreen = NavigationBarState.isNavBarVisible
+              val navBarLeft = if (NavigationBarState.navbarLeftOffset > 0.dp) NavigationBarState.navbarLeftOffset else 16.dp
+              val navBarWidth = if (NavigationBarState.navbarWidth > 0.dp) NavigationBarState.navbarWidth else 320.dp
+              val startPadding = if (isNavBarOnScreen) (navBarLeft + navBarWidth + 12.dp) else 12.dp
+              val bottomPadding = if (NavigationBarState.isInSelectionMode) NavigationBarState.selectionBarClearance else 12.dp
 
-              // Portrait phones: full width with a small side margin. During selection,
-              // lift the mini player above the edit actions instead of covering them.
-              isPortrait && !isTablet ->
-                Modifier
-                  .align(Alignment.BottomCenter)
-                  .fillMaxWidth()
-                  .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    bottom =
-                      (if (NavigationBarState.isNavBarVisible) {
-                        NavigationBarState.navigationBarClearance
-                      } else {
-                        12.dp
-                      }) +
-                        (if (NavigationBarState.isInSelectionMode) {
-                          NavigationBarState.selectionBarClearance
-                        } else {
-                          0.dp
-                        }),
-                  )
-
-              // Landscape/tablet single-pane: sit on the right side of the nav bar,
-              // which slides left when the mini player appears.
-              else -> {
-                val isNavBarOnScreen = NavigationBarState.isNavBarVisible
-                val navBarLeft = if (NavigationBarState.navbarLeftOffset > 0.dp) NavigationBarState.navbarLeftOffset else 16.dp
-                val navBarWidth = if (NavigationBarState.navbarWidth > 0.dp) NavigationBarState.navbarWidth else 320.dp
-                val startPadding = if (isNavBarOnScreen) (navBarLeft + navBarWidth + 12.dp) else 12.dp
-                val bottomPadding = if (NavigationBarState.isInSelectionMode) {
-                  NavigationBarState.selectionBarClearance
-                } else {
-                  12.dp
-                }
-
-                Modifier
-                  .align(Alignment.BottomStart)
-                  .padding(
-                    start = startPadding,
-                    end = 12.dp,
-                  )
-                  .fillMaxWidth()
-                  .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(bottom = bottomPadding)
-              }
+              Modifier.align(Alignment.BottomStart).padding(start = startPadding, end = 12.dp).fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = bottomPadding)
             }
+          }
 
           MiniPlayer(modifier = miniPlayerModifier)
         }
       }
 
-      // Display the update sheet when appropriate (only if update feature is enabled)
       if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null) {
         when (updateState) {
           is UpdateViewModel.UpdateState.Available -> {
             val release = (updateState as UpdateViewModel.UpdateState.Available).release
-            UpdateSheet(
-              release = release,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              isInstallReady = false,
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.downloadUpdate(release) },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName) },
-            )
+            UpdateSheet(release = release, isDownloading = isDownloading, progress = downloadProgress, isInstallReady = false, currentVersion = currentVersion, onDismiss = { updateViewModel.dismiss() }, onAction = { updateViewModel.downloadUpdate(release) }, onIgnore = { updateViewModel.ignoreVersion(release.tagName) })
           }
           is UpdateViewModel.UpdateState.ReadyToInstall -> {
             val release = (updateState as UpdateViewModel.UpdateState.ReadyToInstall).release
-            UpdateSheet(
-              release = release,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              isInstallReady = true,
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.installUpdate(release) },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName) },
-            )
+            UpdateSheet(release = release, isDownloading = isDownloading, progress = downloadProgress, isInstallReady = true, currentVersion = currentVersion, onDismiss = { updateViewModel.dismiss() }, onAction = { updateViewModel.installUpdate(release) }, onIgnore = { updateViewModel.ignoreVersion(release.tagName) })
           }
           else -> {}
         }
