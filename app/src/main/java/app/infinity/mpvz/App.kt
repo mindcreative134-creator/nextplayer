@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-package app.infinity.mpvz
+package com.kxplayer.app
 
 import android.app.Activity
 import android.app.Application
@@ -66,7 +66,6 @@ class App :
   override fun onCreate() {
     super.onCreate()
 
-    // Initialize Koin
     startKoin {
       androidContext(this@App)
       modules(
@@ -122,15 +121,6 @@ class App :
         Log.e(TAG, "Failed to initialize WebStreamLinksActivityAlias setting on launch", error)
       }
     }
-
-    // TextMate grammar/theme assets for the script editor are initialized lazily on first use.
-    // Metadata cache maintenance and native thumbnail startup are intentionally kept out of the
-    // Application cold-start path so they cannot compete with first composition / first frame.
-
-    // MediaStore is Android's source of truth for the normal library. Do not trigger a recursive
-    // scan of the entire external-storage root from process startup: on large libraries that can
-    // wake storage for minutes and duplicate work the platform already performs when media changes.
-    // Explicit library refreshes and normal MediaStore notifications still invalidate app caches.
   }
 
   override fun onActivityStarted(activity: Activity) {
@@ -152,7 +142,6 @@ class App :
   private fun pauseVideoWhenBackgroundPlaybackDisabled(activity: Activity) {
     val playerActivity = activity as? PlayerActivity ?: return
     if (playerActivity.isCurrentMediaKnownAudio()) return
-
     val isInPictureInPicture =
       Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && playerActivity.isInPictureInPictureMode
     if (isInPictureInPicture) return
@@ -168,10 +157,7 @@ class App :
     Log.d(TAG, "Paused video because video background playback is disabled")
   }
 
-  override fun onActivityCreated(
-    activity: Activity,
-    savedInstanceState: Bundle?,
-  ) {
+  override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
     if (activity.javaClass.name.contains("leakcanary", ignoreCase = true)) {
       val rootView = activity.findViewById<View>(android.R.id.content)
       rootView?.let { view ->
@@ -191,22 +177,10 @@ class App :
   }
 
   override fun onActivityResumed(activity: Activity) = Unit
-
   override fun onActivityPaused(activity: Activity) = Unit
-
-  override fun onActivitySaveInstanceState(
-    activity: Activity,
-    outState: Bundle,
-  ) = Unit
-
+  override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
   override fun onActivityDestroyed(activity: Activity) = Unit
 
-  /**
-   * Keep libmpv warm for quick navigation/re-entry, but do not pin its native decoder/renderer
-   * allocation forever after playback has genuinely ended. collectLatest makes this self-cancelling:
-   * any new load, surface attachment, background session, or other state change aborts the grace
-   * timer before destruction can run.
-   */
   private fun startIdleMpvCoreReaper() {
     applicationScope.launch {
       PlaybackSession.state.collectLatest { state ->
@@ -266,7 +240,6 @@ class App :
     }
   }
 
-  /** Starts saved-share auto-connect in process scope so Activity recreation cannot cancel it. */
   internal fun autoConnectNetworksOnce() {
     if (!networkAutoConnectStarted.compareAndSet(false, true)) return
 
@@ -276,11 +249,9 @@ class App :
         val repository = getKoin().get<NetworkRepository>()
         repository.getAutoConnectConnections().forEach { connection ->
           Log.d(TAG, "Auto-connecting to network share: ${connection.name}")
-          repository
-            .connect(connection)
-            .onFailure { error ->
-              Log.e(TAG, "Auto-connect failed for ${connection.name}: ${error.message}")
-            }
+          repository.connect(connection).onFailure { error ->
+            Log.e(TAG, "Auto-connect failed for ${connection.name}: ${error.message}")
+          }
         }
       } catch (cancellation: CancellationException) {
         networkAutoConnectStarted.set(false)
@@ -292,10 +263,5 @@ class App :
     }
   }
 
-  /**
-   * Resolves [org.koin.core.Koin] from the global context. Safe to call only
-   * after [startKoin] has completed (which it has, synchronously, at the top
-   * of [onCreate]).
-   */
   private fun getKoin() = GlobalContext.get()
 }

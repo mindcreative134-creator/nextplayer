@@ -37,16 +37,16 @@ plugins {
 }
 
 android {
-  namespace = "app.infinity.mpvz"
+  namespace = "com.kxplayer.app"
   compileSdk = 37
   ndkVersion = "27.3.13750724"
 
   defaultConfig {
-    applicationId = "com.nextplayer.pro"
+    applicationId = "com.kxplayer.app"
     minSdk = 26
     targetSdk = 36
-    versionCode = 553
-    versionName = "1.2.0"
+    versionCode = 1
+    versionName = "1.0.0"
 
     vectorDrawables {
       useSupportLibrary = true
@@ -169,7 +169,7 @@ android {
       buildConfigField("boolean", "IS_PREVIEW_BUILD", "false")
       applicationIdSuffix = ".debug"
       versionNameSuffix = "-${getCommitCount()}"
-      resValue("string", "app_name", "NextPlayer-Debug")
+      resValue("string", "app_name", "KxPlayer-Debug")
     }
   }
 
@@ -245,14 +245,12 @@ androidComponents {
           .find { it.filterType == FilterConfiguration.FilterType.ABI }
           ?.identifier
 
-      // Keep universal packages for these flavors, but also publish the arm64-v8a split for
-      // modern devices that need the architecture-specific native playback profile.
       if (isUniversalOnly && abi != null && hasUniversal) {
         output.enabled.set(false)
       }
 
       val channelVersionCode =
-        if (variant.buildType == "preview") previewVersionCode else (output.versionCode.orNull ?: 553)
+        if (variant.buildType == "preview") previewVersionCode else (output.versionCode.orNull ?: 1)
 
       if (isPlaystore || abi == null) {
         output.versionCode.set(channelVersionCode)
@@ -339,7 +337,6 @@ dependencies {
   implementation(platform(libs.sora.editor.bom))
   implementation(libs.sora.editor)
   implementation(libs.sora.language.textmate)
-  // implementation(libs.sora.oniguruma.native)
 
   coreLibraryDesugaring(libs.desugar.jdk.libs)
 
@@ -354,7 +351,6 @@ dependencies {
   "noVulkanImplementation"(files("libs/mpvlib-no-vulkun.aar"))
   "fongmiImplementation"(files("libs/mpvlib-fongmi.aar"))
 
-  // Network protocol libraries
   implementation(libs.smbj)
   implementation(libs.commons.net)
   implementation(libs.jsch)
@@ -367,7 +363,6 @@ dependencies {
   implementation(libs.reorderable)
   implementation(libs.androidx.biometric)
 
-  // libtorrent4j's Java API plus the native library for every enabled APK ABI.
   implementation(libs.libtorrent4j)
   implementation(libs.libtorrent4j.android.arm64)
   implementation(libs.libtorrent4j.android.arm)
@@ -376,8 +371,6 @@ dependencies {
     implementation(libs.libtorrent4j.android.x8664)
   }
 }
-
-// ---------------- Git helpers ----------------
 
 fun getCommitCount(): String = runCommand("git rev-list --count HEAD") ?: "0"
 

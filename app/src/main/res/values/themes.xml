@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.KxPlayer" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
 
-    <style name="Theme.mpvinfinity" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
-
-    <style name="Theme.mpvinfinity.Player" parent="Theme.mpvinfinity">
+    <style name="Theme.KxPlayer.Player" parent="Theme.KxPlayer">
         <item name="android:windowBackground">@android:color/black</item>
     </style>
 
-    <style name="Theme.mpvinfinity.QuickDownload" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
+    <style name="Theme.KxPlayer.QuickDownload" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
